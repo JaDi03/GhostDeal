@@ -1,38 +1,54 @@
-import type { Metadata } from 'next'
-import { Inter, Space_Mono } from 'next/font/google'
-import './globals.css'
+import type { Metadata, Viewport } from "next";
+import { Space_Grotesk, IBM_Plex_Mono } from "next/font/google";
+import "./globals.css";
+import "./ghostdeal.css";
+import AppChrome from "./components/ghost/AppChrome";
+import PwaRegister from "./components/ghost/PwaRegister";
 
-// Clean neutral grotesque for everything (matches the Uniswap reference); a mono
-// only for hex addresses / hashes.
-const inter = Inter({
-  subsets: ['latin'],
-  variable: '--font-body',
-  display: 'swap',
-})
-const spaceMono = Space_Mono({
-  subsets: ['latin'],
-  weight: ['400', '700'],
-  variable: '--font-mono-ui',
-  display: 'swap',
-})
+const display = Space_Grotesk({
+  subsets: ["latin"],
+  variable: "--font-body",
+  display: "swap",
+});
+
+const mono = IBM_Plex_Mono({
+  subsets: ["latin"],
+  weight: ["400", "600"],
+  variable: "--font-mono-ui",
+  display: "swap",
+});
+
+const themeBoot = `(function(){try{var t=localStorage.getItem("ghostdeal-theme");if(t!=="light"&&t!=="dark"){t=window.matchMedia("(prefers-color-scheme: light)").matches?"light":"dark";}document.documentElement.setAttribute("data-theme",t);}catch(e){document.documentElement.setAttribute("data-theme","dark");}})();`;
 
 export const metadata: Metadata = {
-  title: 'Shielded STRK · WalletAccountV6',
-  description: 'Shield, unshield and privately move STRK on Starknet with WalletAccountV6',
-}
+  title: "GhostDeal",
+  description: "Pay in person without showing your balance.",
+  applicationName: "GhostDeal",
+  appleWebApp: {
+    capable: true,
+    title: "GhostDeal",
+    statusBarStyle: "black-translucent",
+  },
+  formatDetection: { telephone: false },
+};
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export const viewport: Viewport = {
+  themeColor: "#0d0d0d",
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+};
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html
-      lang="en"
-      className={`${inter.variable} ${spaceMono.variable}`}
-      suppressHydrationWarning
-    >
-      <body>{children}</body>
+    <html lang="en" className={`${display.variable} ${mono.variable}`} suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: themeBoot }} />
+      </head>
+      <body>
+        <PwaRegister />
+        <AppChrome>{children}</AppChrome>
+      </body>
     </html>
-  )
+  );
 }
