@@ -2,11 +2,12 @@
 import styles from "../../../uni.module.css";
 import { useStoreWallet } from "../../Wallet/walletContext";
 import { useFrontendProvider } from "../provider/providerContext";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { walletV6, validateAndParseAddress, constants as SNconstants, WalletAccountV6 } from "starknet";
-import { WALLET_API } from "@starknet-io/types-js";
+import { WALLET_API, type StarknetWindowObject } from "@starknet-io/types-js";
 import { myFrontendProviders } from "@/utils/constants";
 import { createStore, type Store } from "@starknet-io/get-starknet-discovery";
+import { StarknetInjectedWallet } from "@starknet-io/get-starknet-wallet-standard";
 import type {
   WalletWithStarknetFeatures,
 } from '@starknet-io/get-starknet-wallet-standard/features';
@@ -17,6 +18,40 @@ import type {
 // wallet's display name ("Argent X", "Braavos", ...).
 function normalizeId(s: string): string {
   return s.toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+function parseVersionParts(v: string): number[] {
+  return v.split(".").map((part) => Number.parseInt(part, 10) || 0);
+}
+
+function hasMinWalletApi(versions: readonly string[], min: string): boolean {
+  const [minMajor, minMinor, minPatch] = parseVersionParts(min);
+  return versions.some((raw) => {
+    const [major, minor, patch] = parseVersionParts(raw);
+    if (major !== minMajor) return major > minMajor;
+    if (minor !== minMinor) return minor > minMinor;
+    return patch >= minPatch;
+  });
+}
+
+function asStarknetWindowObject(wallet: unknown): StarknetWindowObject | null {
+  if (!wallet || typeof wallet !== "object") return null;
+  const candidate = wallet as { request?: unknown; on?: unknown; off?: unknown };
+  if (typeof candidate.request !== "function") return null;
+  if (typeof candidate.on !== "function") return null;
+  if (typeof candidate.off !== "function") return null;
+  return wallet as StarknetWindowObject;
+}
+
+function toWalletStandard(wallet: unknown): WalletWithStarknetFeatures {
+  if (wallet && typeof wallet === "object" && "features" in wallet) {
+    return wallet as WalletWithStarknetFeatures;
+  }
+  const swo = asStarknetWindowObject(wallet);
+  if (!swo) {
+    throw new Error("Ready connected but did not return a Starknet wallet object.");
+  }
+  return new StarknetInjectedWallet(swo);
 }
 
 export default function SelectWallet({ variant = "ctaBig" }: { variant?: "nav" | "ctaBig" }) {
@@ -41,15 +76,20 @@ export default function SelectWallet({ variant = "ctaBig" }: { variant?: "nav" |
   const [pickerOpen, setPickerOpen] = useState(false);
   // Detected Starknet wallets, in render state so the picker updates as wallets register.
   const [wallets, setWallets] = useState<WalletWithStarknetFeatures[]>([]);
+  const storeRef = useRef<Store | null>(null);
 
   // Create the discovery store once on mount so wallets have time to register
   // before the user opens the picker. eip1193Adapters:[] keeps MetaMask out entirely
   // (no EIP-6963 MetaMask bridging / Snap probing).
   useEffect(() => {
     const store: Store = createStore({ eip1193Adapters: [] });
-    setWallets(store.getWallets().slice());
-    const unsub = store.subscribe((next) => setWallets(next.slice()));
-    return () => unsub();
+    storeRef.current = store;
+    setWallets(store.getWallets().slice() as WalletWithStarknetFeatures[]);
+    const unsub = store.subscribe((next) => setWallets(next.slice() as WalletWithStarknetFeatures[]));
+    return () => {
+      storeRef.current = null;
+      unsub();
+    };
   }, []);
 
   // Show every detected wallet except MetaMask (its Snap probing spams an unlock popup)
@@ -88,9 +128,66 @@ export default function SelectWallet({ variant = "ctaBig" }: { variant?: "nav" |
     setWalletApi(await walletV6.supportedSpecs(selectedWallet));
   }
 
+  async function requireStrk20WalletApi(selectedWallet: WalletWithStarknetFeatures) {
+    const versions = (await walletV6.supportedWalletApi(selectedWallet)).map(String);
+    if (hasMinWalletApi(versions, "0.10.3")) return;
+    setConnected(false);
+    setAddressAccount("");
+    throw new Error(
+      "This Ready session does not expose Wallet API 0.10.3. Connect worked; private Pay cannot use this connector.",
+    );
+  }
+
+  // Ready in-app explorer: npm starknetkit 3.4.3 still exports ArgentMobileConnector
+  // (docs name: ReadyConnector). Desktop must not call this (MetaMask Snap spam).
+  async function connectReadyInApp() {
+    const { connect } = await import("starknetkit");
+    const { ArgentMobileConnector } = await import("starknetkit/argentMobile");
+    const projectId = process.env.NEXT_PUBLIC_WC_PROJECT_ID?.trim();
+    const { wallet } = await connect({
+      modalMode: "canAsk",
+      connectors: [
+        ArgentMobileConnector.init({
+          options: {
+            dappName: "GhostDeal",
+            url: window.location.hostname,
+            ...(projectId ? { projectId } : {}),
+          },
+        }),
+      ],
+    });
+    if (!wallet) {
+      throw new Error("Ready in-app connect was cancelled.");
+    }
+    storeRef.current?._refreshInjectedWallets();
+    const refreshed = (storeRef.current?.getWallets() ?? []).filter((w) => {
+      const id = normalizeId(w.name);
+      return !id.includes("metamask") && !id.includes("braavos");
+    }) as WalletWithStarknetFeatures[];
+    const selected = refreshed[0] ?? toWalletStandard(wallet);
+    await handleSelectedWallet(selected);
+    await requireStrk20WalletApi(selected);
+  }
+
   // Open the wallet picker so the user can choose (Ready, Xverse, ...).
-  const openPicker = () => {
+  // Inside Ready's explorer, skip the empty discovery picker and use StarknetKit.
+  const openPicker = async () => {
     setError("");
+    const { isInArgentMobileAppBrowser } = await import("starknetkit/argentMobile");
+    if (isInArgentMobileAppBrowser()) {
+      setConnecting(true);
+      try {
+        await connectReadyInApp();
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : "Wallet connection failed.";
+        console.log("Wallet connection failed.\n", err);
+        setError(message);
+        setPickerOpen(true);
+      } finally {
+        setConnecting(false);
+      }
+      return;
+    }
     setPickerOpen(true);
   };
 
@@ -178,8 +275,8 @@ export default function SelectWallet({ variant = "ctaBig" }: { variant?: "nav" |
     }
     return (
       <>
-        <button className={styles.connectPill} onClick={openPicker}>
-          Connect
+        <button className={styles.connectPill} onClick={openPicker} disabled={connecting}>
+          {connecting ? "Connecting…" : "Connect"}
         </button>
         {picker}
       </>
@@ -190,8 +287,8 @@ export default function SelectWallet({ variant = "ctaBig" }: { variant?: "nav" |
   // wallet is connected.
   return (
     <>
-      <button className={styles.btnCta} onClick={openPicker}>
-        Connect a Wallet
+      <button className={styles.btnCta} onClick={openPicker} disabled={connecting}>
+        {connecting ? "Connecting…" : "Connect a Wallet"}
       </button>
       {picker}
     </>

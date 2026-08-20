@@ -16,6 +16,7 @@
     "react-dom": "19.2.1",
     "sharp": "^0.34.5",
     "starknet": "10.4.0",
+    "starknetkit": "3.4.3",
     "zustand": "^5.0.9"
   },
   "devDependencies": {
