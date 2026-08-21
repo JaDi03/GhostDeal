@@ -1,6 +1,6 @@
 "use client";
 
-import { SEED_LISTINGS, type Listing } from "@/data/listings";
+import { type Listing } from "@/data/listings";
 import { sameAddress } from "@/data/accountStore";
 
 const KEY = "ghostdeal-extra-listings";
@@ -57,10 +57,8 @@ export function removeListing(id: string) {
 }
 
 export function allListings(): Listing[] {
-  const extras = loadExtraListings();
   const hidden = new Set(loadHiddenIds());
-  const ids = new Set(extras.map((l) => l.id));
-  return [...extras, ...SEED_LISTINGS.filter((l) => !ids.has(l.id))].filter((l) => !hidden.has(l.id));
+  return loadExtraListings().filter((row) => !hidden.has(row.id));
 }
 
 export function isOwnedBy(listing: Listing, address?: string): boolean {
@@ -70,6 +68,15 @@ export function isOwnedBy(listing: Listing, address?: string): boolean {
 export function listingsOwnedBy(address?: string): Listing[] {
   if (!address) return [];
   return allListings().filter((row) => isOwnedBy(row, address));
+}
+
+export function lockListing(
+  id: string,
+  patch: Pick<Listing, "refundHash" | "payTxHash">,
+) {
+  const current = allListings().find((row) => row.id === id);
+  if (!current) return;
+  saveExtraListing({ ...current, ...patch, status: "locked" });
 }
 
 export function claimOrphanListings(address: string) {

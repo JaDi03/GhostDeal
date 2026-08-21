@@ -16,10 +16,8 @@ Inspired by [IDEA-12 Marketplace escrow](https://github.com/starkience/strk20-ha
 
 - Next.js 16, React 19, TypeScript
 - starknet.js 10 + get-starknet v6 (Wallet API; Ready wallet)
-- Cairo `privacy_invoke` helper (starter echo today; GhostDeal escrow next)
+- Cairo `privacy_invoke` escrow helper (`cairo/`)
 - Mainnet STRK20 pool: `0x040337b1af3c663e86e333bab5a4b28da8d4652a15a69beee2b677776ffe812a`
-
-Bootstrapped from the [STRK20 starter kit](https://github.com/Akashneelesh/strk20-starter-kit).
 
 ## Run locally
 

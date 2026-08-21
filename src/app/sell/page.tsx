@@ -4,10 +4,10 @@ import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { loadExtraListings, listingsOwnedBy, removeListing, saveExtraListing } from "@/data/listingStore";
 import type { Listing, ListingToken } from "@/data/listings";
+import { saveClaimSecret, getEscrowSecrets } from "@/data/escrowSecrets";
+import { commitmentHashFromSecret, randomFeltSecret } from "@/lib/escrow";
 import { useStoreWallet } from "@/app/components/Wallet/walletContext";
 import ConnectGate from "@/app/components/ghost/ConnectGate";
-
-const FALLBACK_IMAGE = "/listings/bike.svg";
 
 function compressImage(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -90,8 +90,17 @@ function SellForm() {
   function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!title.trim() || !price.trim() || !address) return;
+    if (!image) {
+      setPhotoError("Add a photo of the item.");
+      return;
+    }
     const id = editId && mine.some((row) => row.id === editId) ? editId : `local-${Date.now()}`;
+    const existing = loadExtraListings().find((row) => row.id === id);
+    const existingSecret = getEscrowSecrets(id)?.claimSecret;
+    const claimSecret = existingSecret ?? randomFeltSecret();
+    const claimHash = existing?.claimHash ?? commitmentHashFromSecret(claimSecret);
     try {
+      saveClaimSecret(id, claimSecret);
       saveExtraListing({
         id,
         title: title.trim(),
@@ -99,9 +108,12 @@ function SellForm() {
         token,
         seller: seller.trim() || "@you",
         ownerAddress: address,
-        image: image || FALLBACK_IMAGE,
-        blurb: blurb.trim() || "Listed from this phone.",
-        status: "open",
+        image,
+        blurb: blurb.trim(),
+        status: existing?.status ?? "open",
+        claimHash,
+        refundHash: existing?.refundHash,
+        payTxHash: existing?.payTxHash,
       });
     } catch {
       setPhotoError("Could not save on this phone. Try a smaller photo.");

@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import ListingCard from "./components/ghost/ListingCard";
 import { allListings, onListingsChanged } from "@/data/listingStore";
-import { SEED_LISTINGS, type ListingStatus } from "@/data/listings";
+import { type ListingStatus } from "@/data/listings";
 
 const FILTERS: { id: "all" | ListingStatus; label: string }[] = [
   { id: "all", label: "All" },
@@ -13,7 +13,7 @@ const FILTERS: { id: "all" | ListingStatus; label: string }[] = [
 
 export default function HomePage() {
   const [filter, setFilter] = useState<(typeof FILTERS)[number]["id"]>("all");
-  const [rows, setRows] = useState(SEED_LISTINGS);
+  const [rows, setRows] = useState<ReturnType<typeof allListings>>([]);
   useEffect(() => {
     const refresh = () => setRows(allListings());
     refresh();
@@ -48,9 +48,13 @@ export default function HomePage() {
         ))}
       </div>
       <div className="gdGrid">
-        {listings.map((listing) => (
-          <ListingCard key={listing.id} listing={listing} />
-        ))}
+        {listings.length === 0 ? (
+          <p className="gdLead">No listings yet. Connect and publish from Sell.</p>
+        ) : (
+          listings.map((listing) => (
+            <ListingCard key={listing.id} listing={listing} />
+          ))
+        )}
       </div>
     </>
   );
