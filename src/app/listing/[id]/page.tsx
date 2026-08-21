@@ -4,7 +4,7 @@ import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { allListings, isOwnedBy, removeListing } from "@/data/listingStore";
-import { SEED_LISTINGS, TOKEN_ICON } from "@/data/listings";
+import { TOKEN_ICON, type Listing } from "@/data/listings";
 import PayModal from "@/app/components/ghost/PayModal";
 import { useStoreWallet } from "@/app/components/Wallet/walletContext";
 
@@ -14,7 +14,7 @@ function ListingBody() {
   const search = useSearchParams();
   const isConnected = useStoreWallet((s) => s.isConnected);
   const address = useStoreWallet((s) => s.address);
-  const [listings, setListings] = useState(SEED_LISTINGS);
+  const [listings, setListings] = useState<Listing[]>([]);
   const listing = useMemo(() => listings.find((l) => l.id === params.id), [listings, params.id]);
   const [payOpen, setPayOpen] = useState(false);
   const [showQr, setShowQr] = useState(false);
