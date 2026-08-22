@@ -60,31 +60,31 @@
 .gdHeader {
   position: sticky;
   top: 0;
-  z-index: 20;
+  z-index: 40;
   display: flex;
   align-items: center;
   gap: 10px;
   padding: calc(10px + env(safe-area-inset-top, 0px)) 16px 10px;
   background: color-mix(in srgb, var(--gd-bg) 88%, transparent);
-  backdrop-filter: blur(14px);
   border-bottom: 1px solid var(--gd-line);
+  overflow: visible;
 }
 
 .gdBrand {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 0;
   font-weight: 800;
   letter-spacing: -0.03em;
   text-transform: uppercase;
   font-size: 15px;
   color: var(--gd-text);
   margin-right: auto;
+  white-space: nowrap;
 }
 
-.gdBrand img {
-  width: 22px;
-  height: 22px;
+.gdBrandAccent {
+  color: var(--gd-orange);
 }
 
 .gdIconBtn {
@@ -100,7 +100,7 @@
   flex-shrink: 0;
 }
 
-.gdWallet button {
+.gdWallet > button {
   min-height: 44px;
 }
 
@@ -108,6 +108,26 @@
   flex: 1;
   width: 100%;
   padding: 18px 16px 8px;
+}
+
+.gdPowered {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 4px 16px 10px;
+  color: var(--gd-faint);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.gdStrk20Mark {
+  color: var(--gd-text);
+  letter-spacing: -0.04em;
+  font-weight: 800;
+  font-size: 13px;
 }
 
 .gdH1 {
@@ -425,6 +445,10 @@
     border-radius: 28px;
     box-shadow: 0 40px 70px -30px rgba(0, 0, 0, 0.7);
     overflow: hidden;
+  }
+
+  .gdShell:has(.gdPickerOverlay) {
+    overflow: visible;
   }
 
   .gdH1 {
