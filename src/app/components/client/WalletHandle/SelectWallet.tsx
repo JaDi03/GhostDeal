@@ -103,7 +103,7 @@ export default function SelectWallet({ variant = "ctaBig" }: { variant?: "nav" |
   // the zustand store with a WalletAccountV6 + account/chain/permissions.
   async function handleSelectedWallet(selectedWallet: WalletWithStarknetFeatures) {
     setMyWallet(selectedWallet); // zustand
-    console.log("Trying to connect wallet=", selectedWallet);
+    console.log("Trying to connect wallet=", selectedWallet.name, selectedWallet);
     const myWA = await WalletAccountV6.connect(myFrontendProviders[2], selectedWallet);
     setMyWalletAccount(myWA);
     console.log("WalletAccount created=", myWA);
