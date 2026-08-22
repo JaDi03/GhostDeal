@@ -24,9 +24,7 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
       <div className="gdShell">
         <header className="gdHeader">
           <Link href="/" className="gdBrand">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/tokens/strk20.png" alt="" />
-            GhostDeal
+            Ghost<span className="gdBrandAccent">Deal</span>
           </Link>
           <ThemeToggle />
           <div className="gdWallet">
@@ -34,6 +32,17 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
           </div>
         </header>
         <div className="gdMain">{children}</div>
+        <a
+          className="gdPowered"
+          href="https://strk20.starknet.io"
+          target="_blank"
+          rel="noreferrer"
+        >
+          Powered by
+          <span className="gdStrk20Mark" aria-label="STRK20">
+            STRK<span className="gdBrandAccent">[20]</span>
+          </span>
+        </a>
         <nav className="gdBottom" aria-label="Primary">
           {tabs.map((t) => (
             <Link

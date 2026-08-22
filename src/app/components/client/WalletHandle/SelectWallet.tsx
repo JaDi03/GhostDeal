@@ -215,7 +215,7 @@ export default function SelectWallet({ variant = "ctaBig" }: { variant?: "nav" |
   const shortAddr = address ? `${address.slice(0, 6)}…${address.slice(-4)}` : "";
 
   const picker = pickerOpen ? (
-    <div className={styles.modalOverlay} onClick={() => !connecting && setPickerOpen(false)}>
+    <div className={`${styles.modalOverlay} gdPickerOverlay`} onClick={() => !connecting && setPickerOpen(false)}>
       <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
         <div className={styles.modalHead}>
           <span className={styles.modalTitle}>Connect a wallet</span>
