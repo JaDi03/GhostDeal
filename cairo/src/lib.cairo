@@ -64,7 +64,7 @@ mod Escrow {
         Map, StorageMapReadAccess, StorageMapWriteAccess, StoragePointerReadAccess,
         StoragePointerWriteAccess,
     };
-    use starknet::{ContractAddress, get_caller_address};
+    use starknet::{ContractAddress, get_caller_address, get_contract_address};
     use super::{
         CommitmentEntry, EscrowOperation, IErc20Dispatcher, IErc20DispatcherTrait, OpenNoteDeposit,
         compute_commitment_hash,
@@ -80,12 +80,16 @@ mod Escrow {
         pub const COMMITMENT_NOT_FOUND: felt252 = 'COMMITMENT_NOT_FOUND';
         pub const ALREADY_CLOSED: felt252 = 'ALREADY_CLOSED';
         pub const BAD_SECRET: felt252 = 'BAD_SECRET';
+        pub const INSUFFICIENT_BACKING: felt252 = 'INSUFFICIENT_BACKING';
     }
 
     #[storage]
     struct Storage {
         privacy_contract: ContractAddress,
         commitments: Map<felt252, CommitmentEntry>,
+        // Sum of the amounts of all open commitments, per token. The escrow
+        // must hold at least this much or a later claim would revert.
+        committed: Map<ContractAddress, u256>,
     }
 
     #[constructor]
@@ -123,6 +127,14 @@ mod Escrow {
                     let existing = self.commitments.read(commitment_hash);
                     assert(existing.token.is_zero(), errors::COMMITMENT_EXISTS);
 
+                    // Back every open promise with real tokens: a malicious
+                    // batch can deliver less than it declares, which would
+                    // brick the later claim's ERC-20 pull.
+                    let erc20 = IErc20Dispatcher { contract_address: token };
+                    let balance = erc20.balance_of(get_contract_address());
+                    let promised = self.committed.read(token) + amount.into();
+                    assert(balance >= promised, errors::INSUFFICIENT_BACKING);
+
                     self
                         .commitments
                         .write(
@@ -131,6 +143,7 @@ mod Escrow {
                                 token, amount, refund_hash, closed: false,
                             },
                         );
+                    self.committed.write(token, promised);
 
                     // Tokens already transferred by the pool. Park them here.
                     array![].span()
@@ -167,6 +180,9 @@ mod Escrow {
                 commitment_hash,
                 CommitmentEntry { closed: true, ..entry },
             );
+        self
+            .committed
+            .write(entry.token, self.committed.read(entry.token) - entry.amount.into());
 
         IErc20Dispatcher { contract_address: entry.token }
             .approve(privacy_addr, entry.amount.into());

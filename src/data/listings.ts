@@ -15,6 +15,7 @@ export type Listing = {
   claimHash?: string;
   refundHash?: string;
   payTxHash?: string;
+  claimTxHash?: string;
 };
 
 export const TOKEN_ICON: Record<ListingToken, string> = {
