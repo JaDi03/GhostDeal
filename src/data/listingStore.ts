@@ -79,6 +79,20 @@ export function lockListing(
   saveExtraListing({ ...current, ...patch, status: "locked" });
 }
 
+// Seller cashed out: the commitment is closed on-chain, the deal is done.
+export function markListingClaimed(id: string, patch: Pick<Listing, "claimTxHash">) {
+  const current = allListings().find((row) => row.id === id);
+  if (!current) return;
+  saveExtraListing({ ...current, ...patch, status: "released" });
+}
+
+// Buyer refund landed: the escrow is closed and the item can sell again.
+export function reopenListing(id: string) {
+  const current = allListings().find((row) => row.id === id);
+  if (!current) return;
+  saveExtraListing({ ...current, status: "open", payTxHash: undefined });
+}
+
 export function claimOrphanListings(address: string) {
   const extras = loadExtraListings();
   let changed = false;

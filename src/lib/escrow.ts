@@ -9,18 +9,16 @@ import {
   type WalletAccountV6,
 } from "starknet";
 import type { WalletWithStarknetFeatures } from "@starknet-io/get-starknet-wallet-standard/features";
-import { addrSTRK, GhostDealEscrowMainnet, GhostDealEscrowSepolia, Strk20Networks } from "@/utils/constants";
+import { addrSTRK, GhostDealEscrowMainnet, GhostDealEscrowSepolia, Strk20Networks, Strk20PoolMainnet, Strk20PoolSepolia } from "@/utils/constants";
 import type { Listing } from "@/data/listings";
 
 export const ESCROW_COMMITMENT_TAG = "ESCROW_COMMITMENT_TAG:V1";
 export const ESCROW_OP_DEPOSIT = "0x0";
+export const ESCROW_OP_CLAIM = "0x1";
+export const ESCROW_OP_CANCEL = "0x2";
 export const STRK_DECIMALS = 18n;
 
-// The Wallet API rejects zero-padded felts outright (INVALID_REQUEST_PAYLOAD,
-// no field named): a leading zero after 0x only matches when the whole value
-// is "0". Starknet addresses are conventionally 64-digit padded, so every
-// address/amount must be normalised. Never applies to the literal "0x0" or to
-// placeholder strings.
+// Wallet API felts must be unpadded hex; the literal "0x0" and ${...} placeholders are the only exemptions.
 const felt = (value: string | bigint): string => num.toHex(BigInt(value));
 
 export function isZeroAddress(value: string): boolean {
@@ -35,6 +33,25 @@ export function escrowAddressForIndex(index: number): string {
   if (index === 0) return GhostDealEscrowMainnet;
   if (index === 2) return GhostDealEscrowSepolia;
   return "0x0";
+}
+
+export function poolAddressForIndex(index: number): string {
+  if (index === 0) return Strk20PoolMainnet;
+  if (index === 2) return Strk20PoolSepolia;
+  return "0x0";
+}
+
+// The pool's flat fee per private operation, deducted from the amount moved
+// (shielding 10 with a 2 fee lands 8). Null when the read fails: callers
+// fall back to hiding fee hints rather than guessing.
+export async function poolFeeAmount(provider: ProviderInterface, pool: string): Promise<bigint | null> {
+  if (isZeroAddress(pool)) return null;
+  try {
+    const r = await provider.callContract({ contractAddress: pool, entrypoint: "get_fee_amount", calldata: [] });
+    return BigInt(r[0]);
+  } catch {
+    return null;
+  }
 }
 
 export function randomFeltSecret(): string {
@@ -69,12 +86,39 @@ function sameFelt(a: string, b: string): boolean {
   }
 }
 
+// strk20InvokeTransaction can stall forever when the proving relay wedges; a
+// submit that times out may still land, so callers must poll the chain.
+const PRIVATE_SUBMIT_TIMEOUT_MS = 180_000;
+
+function boundPrivateSubmit<T>(work: Promise<T>): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const expiry = new Promise<never>((_, reject) => {
+    timer = setTimeout(
+      () =>
+        reject(
+            new Error(
+              "The wallet stopped responding while proving. Wait a few minutes and check the deal status on the chain before retrying. The transaction can still land.",
+            ),
+        ),
+      PRIVATE_SUBMIT_TIMEOUT_MS,
+    );
+  });
+  return Promise.race([work, expiry]).finally(() => clearTimeout(timer));
+}
+
 // Wallet-mediated read of the user's shielded balance. No viewing key ever
-// reaches the dapp. Returns null when the wallet cannot report it — callers
+// reaches the dapp. Returns null when the wallet cannot report it: callers
 // must treat null as "unknown", not as zero, and let the pay attempt proceed.
 export async function shieldedBalance(account: WalletAccountV6, token: string): Promise<bigint | null> {
   try {
-    const entries = await account.strk20Balances([token]);
+    // A wedged relay can leave this read hanging forever, freezing whatever
+    // button triggered it: degrade to "unknown" after a minute instead.
+    const entries = await Promise.race([
+      account.strk20Balances([token]),
+      new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("shielded balance read timed out")), 60_000),
+      ),
+    ]);
     const entry = entries.find((e) => sameFelt(e.token, token));
     return entry ? BigInt(entry.balance) : 0n;
   } catch (err: unknown) {
@@ -85,11 +129,8 @@ export async function shieldedBalance(account: WalletAccountV6, token: string): 
   }
 }
 
-// Empty-span invoke batch: withdraw delivers the tokens to the helper, invoke
-// runs privacy_invoke. NO transfer-with-OPEN — our Deposit returns an empty
-// span, and an open note with nothing to credit makes the pool reject the
-// batch. secret/note_id stay literal "0x0" (ignored by the Deposit branch;
-// there is no open note for ${openNoteIds} to resolve to).
+// Deposit returns an empty span: withdraw + invoke only, no OPEN leg (an open
+// note with nothing to credit gets the batch rejected). secret/note_id stay "0x0".
 export function buildDepositActions(input: {
   escrow: string;
   claimHash: string;
@@ -139,7 +180,7 @@ export async function shieldTokens(input: {
       amount: felt(input.amountWei),
     },
   ];
-  const { transaction_hash } = await input.account.strk20InvokeTransaction(actions);
+  const { transaction_hash } = await boundPrivateSubmit(input.account.strk20InvokeTransaction(actions));
   return transaction_hash;
 }
 
@@ -204,9 +245,114 @@ export async function payListingDeposit(input: {
     token: addrSTRK,
     amountWei,
   });
-  // Direct submit: no strk20PrepareInvoke first — it re-triggers balance
+  // Direct submit: no strk20PrepareInvoke first: it re-triggers balance
   // permissions and can loop the wallet permission popup.
-  console.log("[strk20] pay actions:", JSON.stringify(actions, null, 2));
-  const { transaction_hash } = await input.account.strk20InvokeTransaction(actions);
+  const { transaction_hash } = await boundPrivateSubmit(input.account.strk20InvokeTransaction(actions));
+  return transaction_hash;
+}
+
+// Claim returns an OpenNoteDeposit, so the OPEN leg is required; no withdraw:
+// the escrow already holds the funds and approves the pool.
+export function buildClaimActions(input: {
+  escrow: string;
+  secret: string;
+  recipient: string;
+  token: string;
+}): STRK20_ACTION[] {
+  return [
+    { type: "transfer", token: felt(input.token), amount: "OPEN", recipient: felt(input.recipient) },
+    {
+      type: "invoke",
+      contract: felt(input.escrow),
+      calldata: [
+        ESCROW_OP_CLAIM,
+        // commitment_hash, refund_hash, token, amount: ignored by the Claim branch.
+        "0x0",
+        "0x0",
+        "0x0",
+        "0x0",
+        felt(input.secret),
+        "${openNoteIds[0]}",
+      ],
+    },
+  ];
+}
+
+export function buildCancelActions(input: {
+  escrow: string;
+  claimHash: string;
+  secret: string;
+  recipient: string;
+  token: string;
+}): STRK20_ACTION[] {
+  return [
+    { type: "transfer", token: felt(input.token), amount: "OPEN", recipient: felt(input.recipient) },
+    {
+      type: "invoke",
+      contract: felt(input.escrow),
+      calldata: [
+        ESCROW_OP_CANCEL,
+        felt(input.claimHash),
+        // refund_hash, token, amount: ignored by the Cancel branch.
+        "0x0",
+        "0x0",
+        "0x0",
+        felt(input.secret),
+        "${openNoteIds[0]}",
+      ],
+    },
+  ];
+}
+
+function requireEscrowReady(providerIndex: number): string {
+  if (!(providerIndex in Strk20Networks)) {
+    throw new Error("STRK20 is not available on this network.");
+  }
+  const escrow = escrowAddressForIndex(providerIndex);
+  if (isZeroAddress(escrow)) {
+    throw new Error(
+      "GhostDeal escrow is not deployed on this network. Deploy cairo/ and set NEXT_PUBLIC_GHOSTDEAL_ESCROW_MAINNET or NEXT_PUBLIC_GHOSTDEAL_ESCROW_SEPOLIA.",
+    );
+  }
+  return escrow;
+}
+
+// Seller payout. Throws when the commitment is missing or already closed.
+export async function claimEscrowFunds(input: {
+  claimSecret: string;
+  account: WalletAccountV6;
+  wallet: WalletWithStarknetFeatures;
+  providerIndex: number;
+}): Promise<string> {
+  await requireWalletApi0103(input.wallet);
+  const escrow = requireEscrowReady(input.providerIndex);
+  const actions = buildClaimActions({
+    escrow,
+    secret: input.claimSecret,
+    recipient: input.account.address,
+    token: addrSTRK,
+  });
+  const { transaction_hash } = await boundPrivateSubmit(input.account.strk20InvokeTransaction(actions));
+  return transaction_hash;
+}
+
+// Buyer refund with the refund preimage.
+export async function cancelEscrowFunds(input: {
+  claimHash: string;
+  refundSecret: string;
+  account: WalletAccountV6;
+  wallet: WalletWithStarknetFeatures;
+  providerIndex: number;
+}): Promise<string> {
+  await requireWalletApi0103(input.wallet);
+  const escrow = requireEscrowReady(input.providerIndex);
+  const actions = buildCancelActions({
+    escrow,
+    claimHash: input.claimHash,
+    secret: input.refundSecret,
+    recipient: input.account.address,
+    token: addrSTRK,
+  });
+  const { transaction_hash } = await boundPrivateSubmit(input.account.strk20InvokeTransaction(actions));
   return transaction_hash;
 }

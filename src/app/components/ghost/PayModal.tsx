@@ -14,6 +14,8 @@ import {
   formatWei,
   isZeroAddress,
   payListingDeposit,
+  poolAddressForIndex,
+  poolFeeAmount,
   randomFeltSecret,
   shieldedBalance,
   shieldTokens,
@@ -36,6 +38,19 @@ export default function PayModal({
   const [txHash, setTxHash] = useState(listing.payTxHash ?? "");
   // null = the wallet cannot report it (older connector); don't block Pay then.
   const [shielded, setShielded] = useState<bigint | null>(null);
+  const [fee, setFee] = useState<bigint | null>(null);
+  const [refundKey, setRefundKey] = useState("");
+
+  // Plain RPC read, no wallet prompt: safe on every open.
+  useEffect(() => {
+    let cancelled = false;
+    poolFeeAmount(myFrontendProviders[providerIndex], poolAddressForIndex(providerIndex)).then((value) => {
+      if (!cancelled) setFee(value);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [providerIndex]);
 
   useEffect(() => {
     if (!open || !account) {
@@ -46,7 +61,7 @@ export default function PayModal({
     shieldedBalance(account, addrSTRK).then((value) => {
       if (!cancelled) setShielded(value);
     });
-    // A deposit may have landed even when the wallet call timed out — the
+    // A deposit may have landed even when the wallet call timed out: the
     // chain is the source of truth, so reconcile on open.
     const escrowAddr = escrowAddressForIndex(providerIndex);
     if (!cancelled && listing.claimHash && !isZeroAddress(escrowAddr)) {
@@ -69,22 +84,33 @@ export default function PayModal({
   const escrow = escrowAddressForIndex(providerIndex);
   const escrowReady = !isZeroAddress(escrow);
   const priceWei = /^\d+$/.test(listing.price) ? BigInt(listing.price) * 10n ** 18n : null;
-  const insufficient = shielded !== null && priceWei !== null && shielded < priceWei;
+  const feeWei = fee ?? 0n;
+  // Paying is itself a private operation: the pool fee comes on top of the price.
+  const neededWei = priceWei !== null ? priceWei + feeWei : null;
+  const insufficient = shielded !== null && neededWei !== null && shielded < neededWei;
   // Unreadable balance (fresh wallet, wallet backend error) also gets the
-  // shield offer — most such users simply have nothing shielded yet.
+  // shield offer: most such users simply have nothing shielded yet.
   const offerShield = account !== null && priceWei !== null && (shielded === null || insufficient);
 
   async function onShield() {
     setError("");
     if (!account || priceWei === null) return;
+    // Shield price + two pool fees: the shield itself is one private operation
+    // (its fee is deducted), and the payment will need one more on top.
+    const amountWei = priceWei + 2n * feeWei;
     setBusy(true);
     try {
-      await shieldTokens({ account, token: addrSTRK, amountWei: priceWei });
-      // Give the wallet a moment to reflect the deposit, then re-read.
-      const value = await shieldedBalance(account, addrSTRK);
-      setShielded(value);
+      await shieldTokens({ account, token: addrSTRK, amountWei });
+      // The wallet balance read can prompt again and hang; set what we know
+      // landed instead of re-reading: old balance + price + one fee.
+      setShielded((prev) => (prev === null ? null : prev + priceWei + feeWei));
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Shield failed.");
+      const message = err instanceof Error ? err.message : "Shield failed.";
+      setError(
+        /^timeout$/i.test(message)
+          ? "The wallet timed out. The shield can still land; close and reopen this panel to recheck."
+          : message,
+      );
     } finally {
       setBusy(false);
     }
@@ -99,8 +125,9 @@ export default function PayModal({
     setBusy(true);
     const refundSecret = randomFeltSecret();
     const refundHash = commitmentHashFromSecret(refundSecret);
+    setRefundKey(refundSecret);
     // Persist BEFORE sending: pool proofs are slow and the wallet relay can
-    // time out while the deposit still lands — losing the preimage would kill
+    // time out while the deposit still lands: losing the preimage would kill
     // the buyer's cancel option for a payment that went through.
     saveRefundSecret(listing.id, refundSecret);
     try {
@@ -114,7 +141,7 @@ export default function PayModal({
       lockListing(listing.id, { refundHash, payTxHash: hash });
       setTxHash(hash);
     } catch (err: unknown) {
-      // The proving relay times out routinely — before reporting failure,
+      // The proving relay times out routinely: before reporting failure,
       // check whether the deposit actually landed on-chain.
       const escrowAddr = escrowAddressForIndex(providerIndex);
       const state = isZeroAddress(escrowAddr) || !listing.claimHash
@@ -156,17 +183,33 @@ export default function PayModal({
           <>
             <p className="gdMeta gdOrange" style={{ marginBottom: 10 }}>
               {insufficient
-                ? `You need ${listing.price} ${listing.token} shielded to pay in private — you have ${formatWei(shielded ?? 0n)}.`
-                : "Your wallet could not report a shielded balance — if you have never shielded, start here."}{" "}
-              Shield below (the deposit itself is public; only pool activity stays private).
+                ? `You need ${listing.price} ${listing.token} plus the pool fee to pay in private. You have ${formatWei(shielded ?? 0n)} shielded.`
+                : "Your wallet could not report a shielded balance: if you have never shielded, start here."}{" "}
+              The pool charges {formatWei(feeWei)} STRK per private operation (shield now, pay later); the shield
+              button below already includes both.
             </p>
             <button type="button" className="gdBtn gdBtnGhost" onClick={onShield} disabled={busy}>
-              {busy ? "Shielding…" : `Shield ${listing.price} ${listing.token}`}
+              {busy
+                ? "Shielding…"
+                : `Shield ${priceWei !== null ? formatWei(priceWei + 2n * feeWei) : listing.price} ${listing.token} (price + 2 pool fees)`}
             </button>
           </>
         ) : null}
         {error ? <p className="gdMeta">{error}</p> : null}
         {txHash ? <p className="gdMeta" style={{ wordBreak: "break-all" }}>Locked. {txHash}</p> : null}
+        {txHash && refundKey ? (
+          <>
+            <p className="gdMeta">Refund key. Save it: it is the only way to cancel and get your money back.</p>
+            <p className="gdMeta" style={{ wordBreak: "break-all", userSelect: "all" }}>{refundKey}</p>
+            <button
+              type="button"
+              className="gdBtn gdBtnGhost"
+              onClick={() => navigator.clipboard.writeText(refundKey)}
+            >
+              Copy key
+            </button>
+          </>
+        ) : null}
         {!escrowReady ? (
           <p className="gdMeta">
             Escrow is not deployed on this network. Deploy cairo/ and set the address in .env.local.
