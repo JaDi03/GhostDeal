@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import ListingCard from "./components/ghost/ListingCard";
-import { allListings, onListingsChanged } from "@/data/listingStore";
+import { allListings, onListingsChanged, refreshRemoteListings } from "@/data/listingStore";
 import { type ListingStatus } from "@/data/listings";
 
 const FILTERS: { id: "all" | ListingStatus; label: string }[] = [
@@ -17,6 +17,7 @@ export default function HomePage() {
   useEffect(() => {
     const refresh = () => setRows(allListings());
     refresh();
+    refreshRemoteListings();
     return onListingsChanged(refresh);
   }, []);
   const listings = useMemo(() => {

@@ -10,6 +10,7 @@ const GUEST_TABS = [{ href: "/", label: "Home" }];
 
 const CONNECTED_TABS = [
   { href: "/", label: "Home" },
+  { href: "/account", label: "Account" },
   { href: "/sell", label: "Sell" },
   { href: "/deals", label: "Deals" },
 ];

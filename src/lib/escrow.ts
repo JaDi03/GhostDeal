@@ -184,6 +184,20 @@ export async function shieldTokens(input: {
   return transaction_hash;
 }
 
+// Unshields to the connected wallet. The closing transfer is public and names
+// this address; splitting withdrawals over time is what breaks timing linkage.
+export async function unshieldTokens(input: {
+  account: WalletAccountV6;
+  token: string;
+  amountWei: bigint;
+}): Promise<string> {
+  const actions: STRK20_ACTION[] = [
+    { type: "withdraw", token: felt(input.token), amount: felt(input.amountWei), recipient: felt(input.account.address) },
+  ];
+  const { transaction_hash } = await boundPrivateSubmit(input.account.strk20InvokeTransaction(actions));
+  return transaction_hash;
+}
+
 // Read-only deposit state straight from the escrow contract. The wallet's
 // proving relay can time out while the transaction still lands on-chain, so
 // the UI must trust the chain, not the wallet promise.

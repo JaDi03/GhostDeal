@@ -5,7 +5,9 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { loadExtraListings, listingsOwnedBy, removeListing, saveExtraListing } from "@/data/listingStore";
 import type { Listing, ListingToken } from "@/data/listings";
 import { saveClaimSecret, getEscrowSecrets } from "@/data/escrowSecrets";
+import { aliasFor } from "@/data/accountStore";
 import { commitmentHashFromSecret, randomFeltSecret } from "@/lib/escrow";
+import { publishRemoteListing } from "@/lib/marketplace";
 import { useStoreWallet } from "@/app/components/Wallet/walletContext";
 import ConnectGate from "@/app/components/ghost/ConnectGate";
 
@@ -56,9 +58,15 @@ function SellForm() {
   const [image, setImage] = useState("");
   const [photoError, setPhotoError] = useState("");
   const [mine, setMine] = useState<Listing[]>([]);
+  // Set right after a first publish: the claim key is shown once, like a seed
+  // phrase. It is the only thing that can open the payout.
+  const [published, setPublished] = useState<{ id: string; secret: string } | null>(null);
 
   useEffect(() => {
     setMine(listingsOwnedBy(address));
+    // Prefill with the account name when set; edits keep the listing's own alias.
+    const saved = address ? aliasFor(address) : "";
+    if (saved) setSeller(`@${saved.replace(/^@/, "")}`);
     if (!editId || !address) return;
     const row = loadExtraListings().find((l) => l.id === editId);
     if (!row || row.ownerAddress?.toLowerCase() !== address.toLowerCase()) return;
@@ -99,33 +107,69 @@ function SellForm() {
     const existingSecret = getEscrowSecrets(id)?.claimSecret;
     const claimSecret = existingSecret ?? randomFeltSecret();
     const claimHash = existing?.claimHash ?? commitmentHashFromSecret(claimSecret);
+    const listing: Listing = {
+      id,
+      title: title.trim(),
+      price: price.trim(),
+      token,
+      seller: seller.trim() || "@you",
+      ownerAddress: address,
+      image,
+      blurb: blurb.trim(),
+      status: existing?.status ?? "open",
+      claimHash,
+      refundHash: existing?.refundHash,
+      payTxHash: existing?.payTxHash,
+    };
     try {
       saveClaimSecret(id, claimSecret);
-      saveExtraListing({
-        id,
-        title: title.trim(),
-        price: price.trim(),
-        token,
-        seller: seller.trim() || "@you",
-        ownerAddress: address,
-        image,
-        blurb: blurb.trim(),
-        status: existing?.status ?? "open",
-        claimHash,
-        refundHash: existing?.refundHash,
-        payTxHash: existing?.payTxHash,
-      });
+      saveExtraListing(listing);
     } catch {
       setPhotoError("Could not save on this phone. Try a smaller photo.");
       return;
     }
-    router.push(`/listing/${id}`);
+    // New listings go to the shared marketplace too; edits stay local. Best
+    // effort: a storage failure must not lose the local publish.
+    if (!existing) publishRemoteListing(listing).catch(() => undefined);
+    if (existingSecret) {
+      router.push(`/listing/${id}`);
+      return;
+    }
+    setPublished({ id, secret: claimSecret });
   }
 
   function onDeleteMine(id: string) {
     if (!window.confirm("Remove this listing from this phone?")) return;
     removeListing(id);
     setMine(listingsOwnedBy(address));
+  }
+
+  if (published) {
+    return (
+      <>
+        <h1 className="gdH1">Published</h1>
+        <p className="gdLead">Save this key somewhere safe. It is the only way to cash out.</p>
+        <p className="gdMeta" style={{ wordBreak: "break-all", userSelect: "all" }}>
+          {published.secret}
+        </p>
+        <div className="gdRow">
+          <button
+            type="button"
+            className="gdBtn gdBtnGhost"
+            onClick={() => navigator.clipboard.writeText(published.secret)}
+          >
+            Copy key
+          </button>
+          <button type="button" className="gdBtn" onClick={() => router.push(`/listing/${published.id}`)}>
+            View listing
+          </button>
+        </div>
+        <p className="gdMeta">
+          It is stored only on this phone. If this data is wiped and you did not write the key down, nobody can
+          ever claim that money.
+        </p>
+      </>
+    );
   }
 
   return (
