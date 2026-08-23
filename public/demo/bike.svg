@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300">
+  <rect width="400" height="300" fill="#eef1f6"/>
+  <g stroke="#2a2f42" stroke-width="6" fill="none">
+    <circle cx="120" cy="200" r="52"/><circle cx="290" cy="200" r="52"/>
+    <path d="M120 200 L190 110 L265 110 L290 200 M190 110 L230 200 L290 200 M265 110 L230 200"/>
+  </g>
+  <circle cx="120" cy="200" r="8" fill="#f97316"/><circle cx="290" cy="200" r="8" fill="#f97316"/>
+  <path d="M190 110 l-12 -22 h26" stroke="#2a2f42" stroke-width="6" fill="none"/>
+  <text x="200" y="270" text-anchor="middle" font-family="monospace" font-size="16" fill="#5b6478">city bike, tuned</text>
+</svg>

@@ -3,6 +3,7 @@
 export type GhostAccount = {
   address: string;
   createdAt: number;
+  alias?: string;
 };
 
 const KEY = "ghostdeal-accounts";
@@ -31,4 +32,15 @@ export function ensureAccount(address: string): GhostAccount {
   map[key] = row;
   localStorage.setItem(KEY, JSON.stringify(map));
   return row;
+}
+
+export function aliasFor(address: string): string {
+  return loadMap()[address.toLowerCase()]?.alias ?? "";
+}
+
+export function setAccountAlias(address: string, alias: string) {
+  const key = address.toLowerCase();
+  const map = loadMap();
+  map[key] = { ...(map[key] ?? { address, createdAt: Date.now() }), alias };
+  localStorage.setItem(KEY, JSON.stringify(map));
 }

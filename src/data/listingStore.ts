@@ -1,6 +1,8 @@
 "use client";
 
 import { type Listing } from "@/data/listings";
+import { SEED_LISTINGS } from "@/data/seedListings";
+import { fetchRemoteListings } from "@/lib/marketplace";
 import { sameAddress } from "@/data/accountStore";
 
 const KEY = "ghostdeal-extra-listings";
@@ -58,7 +60,26 @@ export function removeListing(id: string) {
 
 export function allListings(): Listing[] {
   const hidden = new Set(loadHiddenIds());
-  return loadExtraListings().filter((row) => !hidden.has(row.id));
+  // Local listings first (they carry payment state), then the shared
+  // marketplace, then the shipped demo seeds; hidden ids filter all of them.
+  const local = loadExtraListings().filter((row) => !hidden.has(row.id));
+  const seen = new Set(local.map((row) => row.id));
+  const remote = remoteCache.filter((row) => !hidden.has(row.id) && !seen.has(row.id));
+  remote.forEach((row) => seen.add(row.id));
+  const seeds = SEED_LISTINGS.filter((row) => !hidden.has(row.id) && !seen.has(row.id));
+  return [...local, ...remote, ...seeds];
+}
+
+let remoteCache: Listing[] = [];
+
+// Pulls the shared marketplace into the cache. Failures keep the previous
+// cache: a storage hiccup must not blank the marketplace view.
+export async function refreshRemoteListings() {
+  const rows = await fetchRemoteListings();
+  if (rows.length > 0 || remoteCache.length === 0) {
+    remoteCache = rows;
+    notifyListingsChanged();
+  }
 }
 
 export function isOwnedBy(listing: Listing, address?: string): boolean {

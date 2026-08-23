@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300">
+  <rect width="400" height="300" fill="#1c1f2b"/>
+  <rect x="60" y="80" width="280" height="140" rx="14" fill="#2a2f42" stroke="#3d4460" stroke-width="3"/>
+  <g fill="#c9d1e6">
+    <rect x="80" y="100" width="30" height="24" rx="5"/><rect x="118" y="100" width="30" height="24" rx="5"/><rect x="156" y="100" width="30" height="24" rx="5"/><rect x="194" y="100" width="30" height="24" rx="5"/><rect x="232" y="100" width="30" height="24" rx="5"/><rect x="270" y="100" width="48" height="24" rx="5"/>
+    <rect x="80" y="132" width="30" height="24" rx="5"/><rect x="118" y="132" width="30" height="24" rx="5"/><rect x="156" y="132" width="64" height="24" rx="5"/><rect x="228" y="132" width="30" height="24" rx="5"/><rect x="266" y="132" width="52" height="24" rx="5"/>
+    <rect x="80" y="164" width="42" height="24" rx="5"/><rect x="130" y="164" width="30" height="24" rx="5"/><rect x="168" y="164" width="96" height="24" rx="5"/><rect x="272" y="164" width="46" height="24" rx="5"/>
+  </g>
+  <rect x="150" y="164" width="96" height="24" rx="5" fill="#f97316"/>
+  <text x="200" y="262" text-anchor="middle" font-family="monospace" font-size="16" fill="#8b93ad">mechanical keyboard</text>
+</svg>
