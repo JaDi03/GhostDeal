@@ -1,8 +1,8 @@
 # GhostDeal
 
-**Pay like cash.** You pay the agreed price. The other person never sees your wallet or how much STRK you still hold.
+**Pay like cash.** You pay the agreed price. The other person never sees your wallet or how much crypto you still hold.
 
-Mobile-first PWA for in-person P2P sales on Starknet [STRK20](https://strk20.starknet.io). A seller lists an item. A buyer pays that price into private escrow. After the item changes hands, the seller cashes out into a private note.
+Mobile-first PWA for in-person P2P sales on Starknet [STRK20](https://strk20.starknet.io). A seller lists an item in USDC. A buyer pays that price into private escrow. After the item changes hands, the seller cashes out into a private note.
 
 This is for ordinary people: buying a used PC from a neighbor, not a checkout desk and not a mixer.
 
@@ -17,15 +17,15 @@ flowchart LR
   C --> D["Seller cashes out"]
 ```
 
-Cash already works this way. You hand over a bill. The seller does not get a statement of your bank account. Public crypto usually does the opposite: one payment can expose the rest of the wallet. GhostDeal restores that cash feeling.
+Cash already works this way. You hand over a bill. The seller does not get a statement of your bank account. Public crypto usually does the opposite: one payment can expose the rest of the wallet. GhostDeal brings back that cash feeling.
 
-**We promise:** the counterparty never sees your remaining balance. The UI never shows the other person's wallet.
+**The advantage:** You pay in private without ever exposing your wallet address or remaining balance to the counterparty.
 
-**We do not promise:** invisibility against a chain observer. Shield deposits and open-note amounts at cash-out can stay public. Timing can leak.
+**We do not promise:** invisibility against a global chain observer. Shield deposits and open-note amounts at cash-out can stay public. Timing can leak.
 
 | Paying from a public wallet | Paying with GhostDeal |
 | --- | --- |
-| Seller can open your address on an explorer | Seller sees that the listing price was paid |
+| Seller can open your address on an explorer | Seller sees that the price was locked into escrow. No wallet address or balance shared. |
 | The rest of your history is often one click away | The rest of your shielded balance stays yours |
 
 ## What is public vs private
