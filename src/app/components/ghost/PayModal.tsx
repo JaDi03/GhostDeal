@@ -40,6 +40,7 @@ export default function PayModal({
   const [shielded, setShielded] = useState<bigint | null>(null);
   const [fee, setFee] = useState<bigint | null>(null);
   const [refundKey, setRefundKey] = useState("");
+  const [refundCopied, setRefundCopied] = useState(false);
 
   // Plain RPC read, no wallet prompt: safe on every open.
   useEffect(() => {
@@ -198,17 +199,28 @@ export default function PayModal({
         {error ? <p className="gdMeta">{error}</p> : null}
         {txHash ? <p className="gdMeta" style={{ wordBreak: "break-all" }}>Locked. {txHash}</p> : null}
         {txHash && refundKey ? (
-          <>
-            <p className="gdMeta">Refund key. Save it: it is the only way to cancel and get your money back.</p>
-            <p className="gdMeta" style={{ wordBreak: "break-all", userSelect: "all" }}>{refundKey}</p>
-            <button
-              type="button"
-              className="gdBtn gdBtnGhost"
-              onClick={() => navigator.clipboard.writeText(refundKey)}
-            >
-              Copy key
-            </button>
-          </>
+          <div style={{ marginTop: 12, marginBottom: 12 }}>
+            <p className="gdMeta" style={{ marginBottom: 6 }}>
+              Refund key. Save it securely: it is the only way to cancel and get your money back.
+            </p>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "var(--gd-raised2)", border: "1px solid var(--gd-line)", borderRadius: 12, padding: "8px 12px" }}>
+              <span style={{ fontFamily: "var(--font-mono-ui), monospace", fontSize: 13, color: "var(--gd-dim)", letterSpacing: "0.08em" }}>
+                0x • • • • • • • •
+              </span>
+              <button
+                type="button"
+                className="gdBtn gdBtnGhost"
+                style={{ padding: "4px 10px", fontSize: 12, minHeight: 0 }}
+                onClick={async () => {
+                  await navigator.clipboard.writeText(refundKey);
+                  setRefundCopied(true);
+                  setTimeout(() => setRefundCopied(false), 2000);
+                }}
+              >
+                {refundCopied ? "✓ Copied" : "Copy key"}
+              </button>
+            </div>
+          </div>
         ) : null}
         {!escrowReady ? (
           <p className="gdMeta">

@@ -61,6 +61,7 @@ function SellForm() {
   // Set right after a first publish: the claim key is shown once, like a seed
   // phrase. It is the only thing that can open the payout.
   const [published, setPublished] = useState<{ id: string; secret: string } | null>(null);
+  const [claimCopied, setClaimCopied] = useState(false);
 
   useEffect(() => {
     setMine(listingsOwnedBy(address));
@@ -149,22 +150,29 @@ function SellForm() {
       <>
         <h1 className="gdH1">Published</h1>
         <p className="gdLead">Save this key somewhere safe. It is the only way to cash out.</p>
-        <p className="gdMeta" style={{ wordBreak: "break-all", userSelect: "all" }}>
-          {published.secret}
-        </p>
-        <div className="gdRow">
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "var(--gd-raised2)", border: "1px solid var(--gd-line)", borderRadius: 12, padding: "10px 14px", margin: "14px 0" }}>
+          <span style={{ fontFamily: "var(--font-mono-ui), monospace", fontSize: 14, color: "var(--gd-dim)", letterSpacing: "0.08em" }}>
+            0x • • • • • • • •
+          </span>
           <button
             type="button"
             className="gdBtn gdBtnGhost"
-            onClick={() => navigator.clipboard.writeText(published.secret)}
+            style={{ padding: "6px 12px", fontSize: 12, minHeight: 0 }}
+            onClick={async () => {
+              await navigator.clipboard.writeText(published.secret);
+              setClaimCopied(true);
+              setTimeout(() => setClaimCopied(false), 2000);
+            }}
           >
-            Copy key
+            {claimCopied ? "✓ Copied" : "Copy key"}
           </button>
+        </div>
+        <div className="gdRow">
           <button type="button" className="gdBtn" onClick={() => router.push(`/listing/${published.id}`)}>
             View listing
           </button>
         </div>
-        <p className="gdMeta">
+        <p className="gdMeta" style={{ marginTop: 14 }}>
           It is stored only on this phone. If this data is wiped and you did not write the key down, nobody can
           ever claim that money.
         </p>
