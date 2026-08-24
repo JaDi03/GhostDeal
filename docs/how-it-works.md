@@ -102,12 +102,11 @@ Shield is public on purpose. The chain sees that someone deposited an amount. Af
 ## Deal states
 
 ```mermaid
-%%{init: {'flowchart': {'curve': 'linear'}} }%%
+%%{init: {'flowchart': {'curve': 'stepAfter'}} }%%
 flowchart TD
   L["1. Listed (Open)"] -->|Buyer pays| E["2. Locked (In Escrow)"]
   E -->|Seller cash out with claimSecret| C["3a. Claimed (Seller paid)"]
   E -->|Buyer cancel with refundSecret| X["3b. Cancelled (Buyer refunded)"]
-  X -.->|Listing reopens| L
 ```
 
 On chain, a commitment is either open or `closed`. Claim and cancel both close it. There is no separate "release" function on the helper: the seller already holds the claim secret from list time. The app can still show Release as a step before cash-out.
