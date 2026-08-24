@@ -102,6 +102,7 @@ Shield is public on purpose. The chain sees that someone deposited an amount. Af
 ## Deal states
 
 ```mermaid
+%%{init: {'flowchart': {'curve': 'linear'}} }%%
 flowchart TD
   L["1. Listed (Open)"] -->|Buyer pays| E["2. Locked (In Escrow)"]
   E -->|Seller cash out with claimSecret| C["3a. Claimed (Seller paid)"]

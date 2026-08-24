@@ -168,7 +168,7 @@ async function gdRenderMermaid() {
     startOnLoad: false,
     theme: "base",
     htmlLabels: false,
-    flowchart: { htmlLabels: false },
+    flowchart: { htmlLabels: false, curve: "linear" },
     themeCSS: gdMermaidThemeCSS(),
     themeVariables: gdMermaidVars(gdSchemeIsDark()),
   });
@@ -194,7 +194,7 @@ if (typeof mermaid !== "undefined") {
     startOnLoad: false,
     theme: "base",
     htmlLabels: false,
-    flowchart: { htmlLabels: false },
+    flowchart: { htmlLabels: false, curve: "linear" },
     themeCSS: gdMermaidThemeCSS(),
   });
 }
