@@ -25,6 +25,7 @@ import {
   isZeroAddress,
   tokenAddressForListing,
 } from "@/lib/escrow";
+import { friendlyPrivateError, isPrivateTokensOffError, isUserRefusedError } from "@/lib/privateWalletError";
 
 // On-chain commitment state per claimHash; local listing status can lag behind it.
 type ChainStates = Record<string, { funded: boolean; closed: boolean }>;
@@ -122,17 +123,22 @@ export default function DealsPage() {
           : `Still open on-chain several minutes after submitting. The relayer is slow; wait and refresh before trying again. ${hash}`,
       );
     } catch (err: unknown) {
-      // Proving relay timeouts are routine and the transaction may still
-      // land: poll before reporting failure.
-      const closed = listing.claimHash ? await waitClosed(listing.claimHash, 6) : false;
-      if (closed) {
-        markListingClaimed(listing.id, { claimTxHash: "on-chain (hash pending)" });
-        setNote(`Cashed out on-chain (hash pending).`);
+      // Private-tokens-off / refuse: do not poll the chain. That wait keeps the
+      // wallet sheet open and looks like a second charge.
+      if (isPrivateTokensOffError(err) || isUserRefusedError(err)) {
+        setError(friendlyPrivateError(err, "Cash out failed."));
       } else {
-        setError(
-          (err instanceof Error ? err.message : "Cash out failed.") +
-            " The escrow still shows open on-chain. If it closes by itself over the next minutes, do not claim again; refreshing picks it up.",
-        );
+        // Proving relay timeouts are routine and the transaction may still
+        // land: poll before reporting failure.
+        const closed = listing.claimHash ? await waitClosed(listing.claimHash, 6) : false;
+        if (closed) {
+          markListingClaimed(listing.id, { claimTxHash: "on-chain (hash pending)" });
+          setNote(`Cashed out on-chain (hash pending).`);
+        } else {
+          setError(
+            `${friendlyPrivateError(err, "Cash out failed.")} The escrow still shows open on-chain. If it closes by itself over the next minutes, do not claim again; refreshing picks it up.`,
+          );
+        }
       }
     } finally {
       setWaiting(false);
@@ -174,15 +180,18 @@ export default function DealsPage() {
         );
       }
     } catch (err: unknown) {
-      const closed = await waitClosed(listing.claimHash, 6);
-      if (closed) {
-        reopenListing(listing.id);
-        setNote(`Refunded on-chain (hash pending).`);
+      if (isPrivateTokensOffError(err) || isUserRefusedError(err)) {
+        setError(friendlyPrivateError(err, "Cancel failed."));
       } else {
-        setError(
-          (err instanceof Error ? err.message : "Cancel failed.") +
-            " The escrow still shows open on-chain. If it closes by itself over the next minutes, do not send another; refreshing picks it up.",
-        );
+        const closed = await waitClosed(listing.claimHash, 6);
+        if (closed) {
+          reopenListing(listing.id);
+          setNote(`Refunded on-chain (hash pending).`);
+        } else {
+          setError(
+            `${friendlyPrivateError(err, "Cancel failed.")} The escrow still shows open on-chain. If it closes by itself over the next minutes, do not send another; refreshing picks it up.`,
+          );
+        }
       }
     } finally {
       setWaiting(false);
@@ -231,14 +240,17 @@ export default function DealsPage() {
           : `Still open on-chain several minutes after submitting. The relayer is slow; wait and refresh before trying again. ${hash}`,
       );
     } catch (err: unknown) {
-      const closed = await waitClosed(claimHash, 6);
-      if (closed) {
-        setNote(`Cashed out on-chain (hash pending).`);
+      if (isPrivateTokensOffError(err) || isUserRefusedError(err)) {
+        setError(friendlyPrivateError(err, "Cash out failed."));
       } else {
-        setError(
-          (err instanceof Error ? err.message : "Cash out failed.") +
-            " The commitment is still open on-chain, so you can retry.",
-        );
+        const closed = await waitClosed(claimHash, 6);
+        if (closed) {
+          setNote(`Cashed out on-chain (hash pending).`);
+        } else {
+          setError(
+            `${friendlyPrivateError(err, "Cash out failed.")} The commitment is still open on-chain, so you can retry.`,
+          );
+        }
       }
     } finally {
       setWaiting(false);
@@ -283,7 +295,7 @@ export default function DealsPage() {
       {!escrowReady ? (
         <p className="gdMeta">Escrow is not deployed on this network.</p>
       ) : null}
-      {error ? <p className="gdMeta">{error}</p> : null}
+      {error ? <p className="gdAlert" role="alert">{error}</p> : null}
       {note ? <p className="gdMeta" style={{ wordBreak: "break-all" }}>{note}</p> : null}
 
       <h2 className="gdCardTitle">You bought</h2>
