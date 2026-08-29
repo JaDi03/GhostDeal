@@ -1,13 +1,36 @@
 "use client";
 
 import { type Listing } from "@/data/listings";
-import { SEED_LISTINGS } from "@/data/seedListings";
 import { fetchRemoteListings } from "@/lib/marketplace";
+import { marketplaceNetworkFromIndex, type MarketplaceNetwork } from "@/lib/marketplaceNetwork";
 import { sameAddress } from "@/data/accountStore";
+import { useFrontendProvider } from "@/app/components/client/provider/providerContext";
 
 const KEY = "ghostdeal-extra-listings";
 const HIDDEN_KEY = "ghostdeal-hidden-listings";
 const CHANGE_EVENT = "ghostdeal-listings";
+
+function currentNetwork(): MarketplaceNetwork {
+  return marketplaceNetworkFromIndex(useFrontendProvider.getState().currentFrontendProviderIndex);
+}
+
+function extrasKey(network: MarketplaceNetwork) {
+  return `${KEY}:${network}`;
+}
+
+function hiddenKey(network: MarketplaceNetwork) {
+  return `${HIDDEN_KEY}:${network}`;
+}
+
+function readJson<T>(key: string, fallback: T): T {
+  if (typeof window === "undefined") return fallback;
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? (JSON.parse(raw) as T) : fallback;
+  } catch {
+    return fallback;
+  }
+}
 
 function notifyListingsChanged() {
   if (typeof window === "undefined") return;
@@ -24,60 +47,60 @@ export function onListingsChanged(handler: () => void) {
 }
 
 export function loadExtraListings(): Listing[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const raw = localStorage.getItem(KEY);
-    return raw ? (JSON.parse(raw) as Listing[]) : [];
-  } catch {
-    return [];
-  }
+  const network = currentNetwork();
+  const scoped = readJson<Listing[]>(extrasKey(network), []);
+  if (network !== "sepolia") return scoped;
+  const legacy = readJson<Listing[]>(KEY, []);
+  if (legacy.length === 0) return scoped;
+  const seen = new Set(scoped.map((row) => row.id));
+  return [...scoped, ...legacy.filter((row) => !seen.has(row.id))];
 }
 
 function loadHiddenIds(): string[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const raw = localStorage.getItem(HIDDEN_KEY);
-    return raw ? (JSON.parse(raw) as string[]) : [];
-  } catch {
-    return [];
-  }
+  const network = currentNetwork();
+  const scoped = readJson<string[]>(hiddenKey(network), []);
+  if (network !== "sepolia") return scoped;
+  const legacy = readJson<string[]>(HIDDEN_KEY, []);
+  return [...new Set([...scoped, ...legacy])];
 }
 
 export function saveExtraListing(listing: Listing) {
+  const network = currentNetwork();
   const next = [listing, ...loadExtraListings().filter((row) => row.id !== listing.id)];
-  localStorage.setItem(KEY, JSON.stringify(next));
+  localStorage.setItem(extrasKey(network), JSON.stringify(next));
   notifyListingsChanged();
 }
 
 export function removeListing(id: string) {
+  const network = currentNetwork();
   const extras = loadExtraListings().filter((row) => row.id !== id);
-  localStorage.setItem(KEY, JSON.stringify(extras));
+  localStorage.setItem(extrasKey(network), JSON.stringify(extras));
   const hidden = new Set(loadHiddenIds());
   hidden.add(id);
-  localStorage.setItem(HIDDEN_KEY, JSON.stringify([...hidden]));
+  localStorage.setItem(hiddenKey(network), JSON.stringify([...hidden]));
   notifyListingsChanged();
 }
 
 export function allListings(): Listing[] {
+  const network = currentNetwork();
   const hidden = new Set(loadHiddenIds());
-  // Local listings first (they carry payment state), then the shared
-  // marketplace, then the shipped demo seeds; hidden ids filter all of them.
   const local = loadExtraListings().filter((row) => !hidden.has(row.id));
   const seen = new Set(local.map((row) => row.id));
-  const remote = remoteCache.filter((row) => !hidden.has(row.id) && !seen.has(row.id));
-  remote.forEach((row) => seen.add(row.id));
-  const seeds = SEED_LISTINGS.filter((row) => !hidden.has(row.id) && !seen.has(row.id));
-  return [...local, ...remote, ...seeds];
+  const remote = (remoteCache[network] ?? []).filter((row) => !hidden.has(row.id) && !seen.has(row.id));
+  return [...local, ...remote];
 }
 
-let remoteCache: Listing[] = [];
+const remoteCache: Partial<Record<MarketplaceNetwork, Listing[]>> = {};
 
 // Pulls the shared marketplace into the cache. Failures keep the previous
 // cache: a storage hiccup must not blank the marketplace view.
 export async function refreshRemoteListings() {
-  const rows = await fetchRemoteListings();
-  if (rows.length > 0 || remoteCache.length === 0) {
-    remoteCache = rows;
+  const network = currentNetwork();
+  notifyListingsChanged();
+  const rows = await fetchRemoteListings(network);
+  const prev = remoteCache[network] ?? [];
+  if (rows.length > 0 || prev.length === 0) {
+    remoteCache[network] = rows;
     notifyListingsChanged();
   }
 }
@@ -125,6 +148,6 @@ export function claimOrphanListings(address: string) {
     return row;
   });
   if (!changed) return;
-  localStorage.setItem(KEY, JSON.stringify(next));
+  localStorage.setItem(extrasKey(currentNetwork()), JSON.stringify(next));
   notifyListingsChanged();
 }

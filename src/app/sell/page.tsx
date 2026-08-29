@@ -8,7 +8,9 @@ import { saveClaimSecret, getEscrowSecrets } from "@/data/escrowSecrets";
 import { aliasFor } from "@/data/accountStore";
 import { commitmentHashFromSecret, randomFeltSecret } from "@/lib/escrow";
 import { publishRemoteListing } from "@/lib/marketplace";
+import { marketplaceNetworkFromIndex } from "@/lib/marketplaceNetwork";
 import { useStoreWallet } from "@/app/components/Wallet/walletContext";
+import { useFrontendProvider } from "@/app/components/client/provider/providerContext";
 import ConnectGate from "@/app/components/ghost/ConnectGate";
 
 function compressImage(file: File): Promise<string> {
@@ -50,6 +52,7 @@ function SellForm() {
   const editId = search.get("edit");
   const isConnected = useStoreWallet((s) => s.isConnected);
   const address = useStoreWallet((s) => s.address);
+  const providerIndex = useFrontendProvider((s) => s.currentFrontendProviderIndex);
   const [title, setTitle] = useState("");
   const [price, setPrice] = useState("");
   const [token, setToken] = useState<ListingToken>("STRK");
@@ -77,7 +80,7 @@ function SellForm() {
     setSeller(row.seller);
     setBlurb(row.blurb);
     setImage(row.image.startsWith("data:") ? row.image : row.image);
-  }, [address, editId]);
+  }, [address, editId, providerIndex]);
 
   if (!isConnected) {
     return <ConnectGate title="Sell" lead="Connect a wallet to publish. Until then you can only browse the marketplace." />;
@@ -131,7 +134,7 @@ function SellForm() {
     }
     // New listings go to the shared marketplace too; edits stay local. Best
     // effort: a storage failure must not lose the local publish.
-    if (!existing) publishRemoteListing(listing).catch(() => undefined);
+    if (!existing) publishRemoteListing(listing, marketplaceNetworkFromIndex(providerIndex)).catch(() => undefined);
     if (existingSecret) {
       router.push(`/listing/${id}`);
       return;

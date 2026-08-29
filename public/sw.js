@@ -1,16 +1,20 @@
-const CACHE = "ghostdeal-v1";
+const CACHE = "ghostdeal-v3";
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(CACHE).then((cache) =>
-      cache.addAll(["/", "/tokens/strk.png", "/tokens/usdc.webp", "/tokens/strk20.png"]).catch(() => undefined)
+      cache
+        .addAll(["/", "/icon-192.png", "/icon-512.png", "/tokens/strk.png", "/tokens/usdc.webp"])
+        .catch(() => undefined)
     )
   );
   self.skipWaiting();
 });
 
 self.addEventListener("activate", (event) => {
-  event.waitUntil(self.clients.claim());
+  event.waitUntil(
+    caches.keys().then((keys) => Promise.all(keys.filter((key) => key !== CACHE).map((key) => caches.delete(key)))).then(() => self.clients.claim())
+  );
 });
 
 self.addEventListener("fetch", (event) => {

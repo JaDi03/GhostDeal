@@ -8,7 +8,9 @@ import { allListings, isOwnedBy, onListingsChanged, refreshRemoteListings, remov
 import { TOKEN_ICON, type Listing } from "@/data/listings";
 import PayModal from "@/app/components/ghost/PayModal";
 import { deleteRemoteListing } from "@/lib/marketplace";
+import { marketplaceNetworkFromIndex } from "@/lib/marketplaceNetwork";
 import { useStoreWallet } from "@/app/components/Wallet/walletContext";
+import { useFrontendProvider } from "@/app/components/client/provider/providerContext";
 
 function ListingBody() {
   const router = useRouter();
@@ -16,6 +18,7 @@ function ListingBody() {
   const search = useSearchParams();
   const isConnected = useStoreWallet((s) => s.isConnected);
   const address = useStoreWallet((s) => s.address);
+  const providerIndex = useFrontendProvider((s) => s.currentFrontendProviderIndex);
   const [listings, setListings] = useState<Listing[]>([]);
   const listing = useMemo(() => listings.find((l) => l.id === params.id), [listings, params.id]);
   const [payOpen, setPayOpen] = useState(false);
@@ -32,7 +35,7 @@ function ListingBody() {
     setOrigin(window.location.origin);
     refreshRemoteListings();
     return onListingsChanged(refresh);
-  }, [search, params.id]);
+  }, [search, params.id, providerIndex]);
 
   useEffect(() => {
     if (buyer && search.get("pay") === "1") setPayOpen(true);
@@ -55,7 +58,7 @@ function ListingBody() {
     if (!window.confirm("Remove this listing from this phone?")) return;
     // Also remove it from the shared marketplace when it went there.
     if (listing.ownerAddress && address) {
-      deleteRemoteListing(listing.id, address).catch(() => undefined);
+      deleteRemoteListing(listing.id, address, marketplaceNetworkFromIndex(providerIndex)).catch(() => undefined);
     }
     removeListing(listing.id);
     router.push("/");

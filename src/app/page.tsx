@@ -4,6 +4,11 @@ import { useEffect, useMemo, useState } from "react";
 import ListingCard from "./components/ghost/ListingCard";
 import { allListings, onListingsChanged, refreshRemoteListings } from "@/data/listingStore";
 import { type ListingStatus } from "@/data/listings";
+import { useFrontendProvider } from "@/app/components/client/provider/providerContext";
+import {
+  marketplaceNetworkFromIndex,
+  marketplaceNetworkLabel,
+} from "@/lib/marketplaceNetwork";
 
 const FILTERS: { id: "all" | ListingStatus; label: string }[] = [
   { id: "all", label: "All" },
@@ -14,12 +19,23 @@ const FILTERS: { id: "all" | ListingStatus; label: string }[] = [
 export default function HomePage() {
   const [filter, setFilter] = useState<(typeof FILTERS)[number]["id"]>("all");
   const [rows, setRows] = useState<ReturnType<typeof allListings>>([]);
+  const [loaded, setLoaded] = useState(false);
+  const providerIndex = useFrontendProvider((s) => s.currentFrontendProviderIndex);
+  const networkName = marketplaceNetworkLabel(marketplaceNetworkFromIndex(providerIndex));
   useEffect(() => {
+    let cancelled = false;
+    setLoaded(false);
     const refresh = () => setRows(allListings());
     refresh();
-    refreshRemoteListings();
-    return onListingsChanged(refresh);
-  }, []);
+    const off = onListingsChanged(refresh);
+    refreshRemoteListings().finally(() => {
+      if (!cancelled) setLoaded(true);
+    });
+    return () => {
+      cancelled = true;
+      off();
+    };
+  }, [providerIndex]);
   const listings = useMemo(() => {
     if (filter === "all") return rows;
     return rows.filter((l) => l.status === filter);
@@ -49,8 +65,17 @@ export default function HomePage() {
         ))}
       </div>
       <div className="gdGrid">
-        {listings.length === 0 ? (
-          <p className="gdLead">No listings yet. Connect and publish from Sell.</p>
+        {!loaded ? (
+          <p className="gdLead">Loading listings…</p>
+        ) : listings.length === 0 ? (
+          <div className="gdEmpty">
+            <p className="gdEmptyTitle">No listings yet</p>
+            <p className="gdEmptyLead">
+              {rows.length === 0
+                ? `Nothing for sale on ${networkName} yet. Connect and publish from Sell.`
+                : "Nothing in this filter. Try All or For sale."}
+            </p>
+          </div>
         ) : (
           listings.map((listing) => (
             <ListingCard key={listing.id} listing={listing} />
