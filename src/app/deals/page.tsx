@@ -20,8 +20,10 @@ import {
   claimEscrowFunds,
   commitmentHashFromSecret,
   escrowAddressForIndex,
+  escrowCommitmentToken,
   escrowDepositState,
   isZeroAddress,
+  tokenAddressForListing,
 } from "@/lib/escrow";
 
 // On-chain commitment state per claimHash; local listing status can lag behind it.
@@ -108,6 +110,7 @@ export default function DealsPage() {
         account,
         wallet,
         providerIndex,
+        token: tokenAddressForListing(listing.token, providerIndex),
       });
       markListingClaimed(listing.id, { claimTxHash: hash });
       setWaiting(true);
@@ -157,6 +160,7 @@ export default function DealsPage() {
         account,
         wallet,
         providerIndex,
+        token: tokenAddressForListing(listing.token, providerIndex),
       });
       setNote(`Submitted. Waiting for the chain to close the escrow… ${hash}`);
       setWaiting(true);
@@ -204,7 +208,20 @@ export default function DealsPage() {
     const claimHash = commitmentHashFromSecret(secret);
     setBusyId("key");
     try {
-      const hash = await claimEscrowFunds({ claimSecret: secret, account, wallet, providerIndex });
+      const escrowAddr = escrowAddressForIndex(providerIndex);
+      const token = await escrowCommitmentToken(myFrontendProviders[providerIndex], escrowAddr, claimHash);
+      if (!token) {
+        setError("No open escrow found for that claim key on this network.");
+        setBusyId("");
+        return;
+      }
+      const hash = await claimEscrowFunds({
+        claimSecret: secret,
+        account,
+        wallet,
+        providerIndex,
+        token,
+      });
       setWaiting(true);
       setNote(`Submitted. Waiting for the chain to close the escrow… ${hash}`);
       const closed = await waitClosed(claimHash);

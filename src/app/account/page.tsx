@@ -1,12 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
 import ConnectGate from "@/app/components/ghost/ConnectGate";
 import { useStoreWallet } from "@/app/components/Wallet/walletContext";
 import { useFrontendProvider } from "@/app/components/client/provider/providerContext";
-import { addrSTRK, myFrontendProviders, Strk20Networks } from "@/utils/constants";
+import { myFrontendProviders } from "@/utils/constants";
 import { aliasFor, setAccountAlias } from "@/data/accountStore";
+import { TOKEN_ICON, type ListingToken } from "@/data/listings";
 import {
   escrowAddressForIndex,
   formatWei,
@@ -16,8 +16,49 @@ import {
   priceToWei,
   shieldedBalance,
   shieldTokens,
+  STRK_DECIMALS,
+  tokenAddressForListing,
   unshieldTokens,
 } from "@/lib/escrow";
+
+// Whole STRK covering one pool fee, rounded up. Used to seed the shield input
+// with a fee-based default instead of a hard-coded demo amount.
+function wholeStrkForFee(feeWei: bigint): bigint {
+  const whole = feeWei / 10n ** STRK_DECIMALS;
+  return feeWei % 10n ** STRK_DECIMALS > 0n ? whole + 1n : whole;
+}
+
+// Ready's WalletRPCError often has an empty .message; the code is on toString() or .cause.
+function privateErrorText(err: unknown): string {
+  const chunks: string[] = [];
+  if (err instanceof Error) {
+    if (err.name) chunks.push(err.name);
+    if (err.message) chunks.push(err.message);
+    if (err.cause instanceof Error && err.cause.message) chunks.push(err.cause.message);
+    else if (typeof err.cause === "string") chunks.push(err.cause);
+  } else if (err && typeof err === "object" && "message" in err) {
+    const nested = (err as { message: unknown }).message;
+    if (typeof nested === "string") chunks.push(nested);
+  }
+  try {
+    const asString = String(err);
+    if (asString && asString !== "[object Object]") chunks.push(asString);
+  } catch {
+    /* ignore */
+  }
+  return chunks.join(" ");
+}
+
+function friendlyPrivateError(err: unknown, fallback: string): string {
+  const message = privateErrorText(err) || fallback;
+  if (/NOT_REGISTERED|not registered|viewing key/i.test(message)) {
+    return "Not registered in STRK20 yet. In Ready, open Privacy / Shield first.";
+  }
+  if (/timed out|stopped responding/i.test(message)) {
+    return "Wallet timed out. The tx can still land; refresh in a bit.";
+  }
+  return message || fallback;
+}
 
 export default function AccountPage() {
   const isConnected = useStoreWallet((s) => s.isConnected);
@@ -29,7 +70,9 @@ export default function AccountPage() {
   const [balance, setBalance] = useState<bigint | null>(null);
   const [balanceFailed, setBalanceFailed] = useState(false);
   const [reading, setReading] = useState(false);
-  const [amount, setAmount] = useState("5");
+  const [asset, setAsset] = useState<ListingToken>("STRK");
+  const [amount, setAmount] = useState("");
+  const [amountTouched, setAmountTouched] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [note, setNote] = useState("");
@@ -37,12 +80,19 @@ export default function AccountPage() {
   const [alias, setAlias] = useState("");
   const [editing, setEditing] = useState(false);
 
-  const network = providerIndex in Strk20Networks ? Strk20Networks[providerIndex] : "UNSUPPORTED";
   const escrowReady = !isZeroAddress(escrowAddressForIndex(providerIndex));
+  // STRK only: seed the input with ~2 pool fees so fees for later private ops are covered.
+  const suggestedAmount = useMemo(() => {
+    if (asset !== "STRK" || fee === null || fee <= 0n) return null;
+    const perOp = wholeStrkForFee(fee);
+    return perOp > 0n ? String(perOp * 2n) : null;
+  }, [fee, asset]);
 
   // Plain RPC read, no wallet prompt.
   useEffect(() => {
     let cancelled = false;
+    setAmountTouched(false);
+    setFee(null);
     poolFeeAmount(myFrontendProviders[providerIndex], poolAddressForIndex(providerIndex)).then((value) => {
       if (!cancelled) setFee(value);
     });
@@ -52,6 +102,18 @@ export default function AccountPage() {
   }, [providerIndex]);
 
   useEffect(() => {
+    setBalance(null);
+    setBalanceFailed(false);
+    setAmountTouched(false);
+    if (asset === "USDC") setAmount("");
+  }, [asset]);
+
+  useEffect(() => {
+    if (amountTouched || !suggestedAmount) return;
+    setAmount(suggestedAmount);
+  }, [suggestedAmount, amountTouched]);
+
+  useEffect(() => {
     if (isConnected && address) setAlias(aliasFor(address));
   }, [isConnected, address]);
 
@@ -59,7 +121,7 @@ export default function AccountPage() {
     return (
       <ConnectGate
         title="Account"
-        lead="Connect a wallet to see your shielded balance. Until then you can only browse the marketplace."
+        lead="Connect to shield and pay in private."
       />
     );
   }
@@ -71,7 +133,7 @@ export default function AccountPage() {
     setError("");
     setReading(true);
     try {
-      const value = await shieldedBalance(account, addrSTRK);
+      const value = await shieldedBalance(account, tokenAddressForListing(asset, providerIndex));
       setBalance(value);
       setBalanceFailed(value === null);
     } finally {
@@ -87,7 +149,7 @@ export default function AccountPage() {
 
   function parseAmountWei(): bigint | null {
     try {
-      const amountWei = priceToWei(amount);
+      const amountWei = priceToWei(amount, asset);
       return amountWei > 0n ? amountWei : null;
     } catch {
       return null;
@@ -97,23 +159,22 @@ export default function AccountPage() {
   async function onShield() {
     setError("");
     setNote("");
-    if (!account) return;
+    if (!account) {
+      setError("Reconnect, then retry Shield.");
+      return;
+    }
     const amountWei = parseAmountWei();
     if (!amountWei) {
-      setError("Enter a whole number of STRK.");
+      setError(`Enter a whole number of ${asset}.`);
       return;
     }
     setBusy(true);
     try {
-      await shieldTokens({ account, token: addrSTRK, amountWei });
-      setNote("Shielded. Tap Refresh balance to see it.");
+      await shieldTokens({ account, token: tokenAddressForListing(asset, providerIndex), amountWei });
+      setNote(`Shielded ${amount} ${asset}. Refresh to see it.`);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Shield failed.";
-      setError(
-        /timed out|stopped responding/i.test(message)
-          ? "The wallet timed out. The shield can still land; tap Refresh balance in a bit."
-          : message,
-      );
+      console.error("[GhostDeal] shield failed:", err);
+      setError(friendlyPrivateError(err, "Shield failed."));
     } finally {
       setBusy(false);
     }
@@ -122,30 +183,30 @@ export default function AccountPage() {
   async function onUnshield() {
     setError("");
     setNote("");
-    if (!account) return;
+    if (!account) {
+      setError("Reconnect, then retry.");
+      return;
+    }
     const amountWei = parseAmountWei();
     if (!amountWei) {
-      setError("Enter a whole number of STRK.");
+      setError(`Enter a whole number of ${asset}.`);
       return;
     }
     setBusy(true);
     try {
-      const hash = await unshieldTokens({ account, token: addrSTRK, amountWei });
-      setNote(`Unshielded minus the pool fee. Tx ${hash}`);
+      const hash = await unshieldTokens({
+        account,
+        token: tokenAddressForListing(asset, providerIndex),
+        amountWei,
+      });
+      setNote(`Unshielded ${asset}. Tx ${hash.slice(0, 10)}…`);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Unshield failed.";
-      setError(
-        /timed out|stopped responding/i.test(message)
-          ? "The wallet timed out. The unshield can still land; check your public balance in a bit."
-          : message,
-      );
+      console.error("[GhostDeal] unshield failed:", err);
+      setError(friendlyPrivateError(err, "Unshield failed."));
     } finally {
       setBusy(false);
     }
   }
-
-  const shortAddress = address ? `${address.slice(0, 6)}…${address.slice(-4)}` : "";
-  const readyToBuy = balance !== null && balance > 0n;
 
   return (
     <>
@@ -190,20 +251,34 @@ export default function AccountPage() {
         </form>
       ) : null}
 
-      <div className="gdPrice" style={{ fontSize: 28, margin: "18px 0 6px" }}>
+      <div className="gdChips" style={{ marginTop: 18, marginBottom: 8 }} role="group" aria-label="Token">
+        {(["STRK", "USDC"] as ListingToken[]).map((token) => (
+          <button
+            key={token}
+            type="button"
+            className={asset === token ? "gdChip gdChipOn" : "gdChip"}
+            onClick={() => setAsset(token)}
+          >
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={TOKEN_ICON[token]} alt="" style={{ width: 16, height: 16, marginRight: 6, verticalAlign: "middle" }} />
+            {token}
+          </button>
+        ))}
+      </div>
+
+      <div className="gdPrice" style={{ fontSize: 28, margin: "10px 0 6px" }}>
         {balance !== null ? (
           <>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/tokens/strk.png" alt="" />
-            {formatWei(balance)} STRK shielded
+            <img src={TOKEN_ICON[asset]} alt="" />
+            {formatWei(balance, asset)} {asset}
           </>
         ) : balanceFailed ? (
-          "Balance unavailable right now."
+          "Unavailable"
         ) : (
-          "Shielded balance not read yet."
+          "—"
         )}
       </div>
-      {balanceFailed ? <p className="gdMeta">The wallet approved the read but its balance service failed. Try again later.</p> : null}
       <button
         type="button"
         className="gdBtn gdBtnGhost"
@@ -211,11 +286,16 @@ export default function AccountPage() {
         onClick={onReadBalance}
         disabled={reading}
       >
-        {reading ? "Reading…" : balance === null ? "Show shielded balance" : "Refresh balance"}
+        {reading ? "Reading…" : balance === null ? "Show balance" : "Refresh"}
       </button>
-      <p className="gdMeta" style={{ marginTop: 10 }}>
-        {shortAddress} · {network} · Escrow {escrowReady ? "deployed" : "not deployed"}
-      </p>
+      {!escrowReady ? <p className="gdMeta">Escrow not deployed on this network.</p> : null}
+
+      {note ? <p className="gdMeta" style={{ marginTop: 12 }}>{note}</p> : null}
+      {busy ? (
+        <p className="gdAlert" role="status">
+          Waiting on wallet…
+        </p>
+      ) : null}
 
       <form
         className="gdForm"
@@ -228,43 +308,35 @@ export default function AccountPage() {
         <div className="gdRow">
           <input
             value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            placeholder="STRK"
+            onChange={(e) => {
+              setAmountTouched(true);
+              setAmount(e.target.value);
+            }}
+            placeholder={asset === "STRK" ? (suggestedAmount ?? "amount") : "amount"}
             inputMode="numeric"
-            aria-label="STRK amount"
+            aria-label={`${asset} amount to shield`}
             style={{ width: 90 }}
           />
+          <span className="gdMeta" style={{ alignSelf: "center" }}>
+            {asset}
+          </span>
           <button type="submit" className="gdBtn" disabled={busy}>
-            {busy ? "Working…" : "Shield"}
+            {busy ? "Waiting…" : "Shield"}
           </button>
           <button type="button" className="gdBtn gdBtnGhost" onClick={onUnshield} disabled={busy}>
             Unshield
           </button>
         </div>
       </form>
+      {error ? (
+        <p className="gdAlert" role="alert">
+          {error}
+        </p>
+      ) : null}
       <p className="gdMeta">
-        The wallet asks twice (approve, then move).
-        {fee !== null ? ` Pool fee: ${formatWei(fee)} STRK per private operation, deducted from the amount (shield or unshield).` : ""}{" "}
-        Unshield is a public withdraw to this address; spread withdrawals over time to break timing linkage.
-      </p>
-
-      {error ? <p className="gdMeta">{error}</p> : null}
-      {note ? <p className="gdMeta">{note}</p> : null}
-
-      <h2 className="gdCardTitle" style={{ marginTop: 22 }}>
-        To buy
-      </h2>
-      <p className="gdMeta">
-        {readyToBuy
-          ? `Ready. You can pay from your ${formatWei(balance ?? 0n)} shielded STRK.`
-          : "Shield STRK above first. Private payments only spend shielded balance."}
-      </p>
-
-      <h2 className="gdCardTitle" style={{ marginTop: 16 }}>
-        To sell
-      </h2>
-      <p className="gdMeta">
-        Ready. Publishing needs no balance and payouts land in your shielded side. <Link href="/sell">Publish a listing</Link>.
+        {fee !== null ? `Fee ${formatWei(fee)} STRK per op. ` : ""}
+        {asset === "USDC" ? "Fee is paid in STRK. " : ""}
+        Unshield is public.
       </p>
     </>
   );

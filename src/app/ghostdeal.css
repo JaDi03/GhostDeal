@@ -300,6 +300,18 @@
   font-size: 13px;
 }
 
+.gdAlert {
+  margin: 10px 0;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--gd-orange);
+  background: rgba(197, 52, 0, 0.16);
+  color: var(--gd-text);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
 .gdBottom {
   position: absolute;
   left: 12px;
