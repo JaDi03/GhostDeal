@@ -9,14 +9,25 @@ import {
   type WalletAccountV6,
 } from "starknet";
 import type { WalletWithStarknetFeatures } from "@starknet-io/get-starknet-wallet-standard/features";
-import { addrSTRK, GhostDealEscrowMainnet, GhostDealEscrowSepolia, Strk20Networks, Strk20PoolMainnet, Strk20PoolSepolia } from "@/utils/constants";
-import type { Listing } from "@/data/listings";
+import {
+  addrSTRK,
+  addrUSDCMainnet,
+  addrUSDCSepolia,
+  GhostDealEscrowMainnet,
+  GhostDealEscrowSepolia,
+  Strk20Networks,
+  Strk20PoolMainnet,
+  Strk20PoolSepolia,
+} from "@/utils/constants";
+import type { Listing, ListingToken } from "@/data/listings";
 
 export const ESCROW_COMMITMENT_TAG = "ESCROW_COMMITMENT_TAG:V1";
 export const ESCROW_OP_DEPOSIT = "0x0";
 export const ESCROW_OP_CLAIM = "0x1";
 export const ESCROW_OP_CANCEL = "0x2";
 export const STRK_DECIMALS = 18n;
+// Circle USDC uses 6 decimals on every chain, including Starknet.
+export const USDC_DECIMALS = 6n;
 
 // Wallet API felts must be unpadded hex; the literal "0x0" and ${...} placeholders are the only exemptions.
 const felt = (value: string | bigint): string => num.toHex(BigInt(value));
@@ -65,17 +76,33 @@ export function commitmentHashFromSecret(secret: string): string {
   return hash.computePoseidonHashOnElements([tag, secret]);
 }
 
-export function priceToWei(price: string): bigint {
+export function tokenDecimals(token: ListingToken): bigint {
+  return token === "USDC" ? USDC_DECIMALS : STRK_DECIMALS;
+}
+
+export function tokenAddressForListing(token: ListingToken, providerIndex: number): string {
+  if (token === "STRK") return addrSTRK;
+  if (providerIndex === 0) return addrUSDCMainnet;
+  if (providerIndex === 2) return addrUSDCSepolia;
+  throw new Error("USDC is not available on this network.");
+}
+
+export function priceToWei(price: string, token: ListingToken = "STRK"): bigint {
   if (!/^\d+$/.test(price)) {
     throw new Error("Price must be a whole number of tokens.");
   }
-  return BigInt(price) * 10n ** STRK_DECIMALS;
+  return BigInt(price) * 10n ** tokenDecimals(token);
 }
 
-export function formatWei(wei: bigint): string {
-  const whole = wei / 10n ** STRK_DECIMALS;
-  const frac = (wei % 10n ** STRK_DECIMALS) / 10n ** 15n;
-  return frac > 0n ? `${whole}.${frac}` : `${whole}`;
+export function formatWei(wei: bigint, token: ListingToken = "STRK"): string {
+  const decimals = tokenDecimals(token);
+  const whole = wei / 10n ** decimals;
+  const remainder = wei % 10n ** decimals;
+  if (remainder === 0n) return `${whole}`;
+  const show = decimals >= 3n ? 3n : decimals;
+  const frac = remainder / 10n ** (decimals - show);
+  const fracStr = frac.toString().padStart(Number(show), "0").replace(/0+$/, "");
+  return fracStr ? `${whole}.${fracStr}` : `${whole}`;
 }
 
 function sameFelt(a: string, b: string): boolean {
@@ -233,8 +260,8 @@ export async function payListingDeposit(input: {
   providerIndex: number;
   refundHash: string;
 }): Promise<string> {
-  if (input.listing.token !== "STRK") {
-    throw new Error("On-chain Pay only supports STRK until a USDC pool token is verified.");
+  if (input.listing.token !== "STRK" && input.listing.token !== "USDC") {
+    throw new Error("On-chain Pay only supports STRK and USDC.");
   }
   if (!input.listing.claimHash || isZeroAddress(input.listing.claimHash)) {
     throw new Error("This listing has no seller claim hash. Publish it from Sell first.");
@@ -250,12 +277,13 @@ export async function payListingDeposit(input: {
   }
   await requireWalletApi0103(input.wallet);
 
-  const amountWei = priceToWei(input.listing.price);
-  const shielded = await shieldedBalance(input.account, addrSTRK);
+  const token = tokenAddressForListing(input.listing.token, input.providerIndex);
+  const amountWei = priceToWei(input.listing.price, input.listing.token);
+  const shielded = await shieldedBalance(input.account, token);
   if (shielded !== null && shielded < amountWei) {
     throw new Error(
-      `Not enough shielded ${input.listing.token}: you have ${formatWei(shielded)}, the price is ${input.listing.price}. ` +
-        "Shield (deposit) STRK into the STRK20 pool from your wallet, then try again.",
+      `Not enough shielded ${input.listing.token}: you have ${formatWei(shielded, input.listing.token)}, the price is ${input.listing.price}. ` +
+        `Shield (deposit) ${input.listing.token} into the STRK20 pool from your wallet, then try again.`,
     );
   }
 
@@ -263,7 +291,7 @@ export async function payListingDeposit(input: {
     escrow,
     claimHash: input.listing.claimHash,
     refundHash: input.refundHash,
-    token: addrSTRK,
+    token,
     amountWei,
   });
   // Direct submit: no strk20PrepareInvoke first: it re-triggers balance
@@ -344,6 +372,7 @@ export async function claimEscrowFunds(input: {
   account: WalletAccountV6;
   wallet: WalletWithStarknetFeatures;
   providerIndex: number;
+  token: string;
 }): Promise<string> {
   await requireWalletApi0103(input.wallet);
   const escrow = requireEscrowReady(input.providerIndex);
@@ -351,7 +380,7 @@ export async function claimEscrowFunds(input: {
     escrow,
     secret: input.claimSecret,
     recipient: input.account.address,
-    token: addrSTRK,
+    token: input.token,
   });
   const { transaction_hash } = await boundPrivateSubmit(input.account.strk20InvokeTransaction(actions));
   return transaction_hash;
@@ -364,6 +393,7 @@ export async function cancelEscrowFunds(input: {
   account: WalletAccountV6;
   wallet: WalletWithStarknetFeatures;
   providerIndex: number;
+  token: string;
 }): Promise<string> {
   await requireWalletApi0103(input.wallet);
   const escrow = requireEscrowReady(input.providerIndex);
@@ -372,8 +402,28 @@ export async function cancelEscrowFunds(input: {
     claimHash: input.claimHash,
     secret: input.refundSecret,
     recipient: input.account.address,
-    token: addrSTRK,
+    token: input.token,
   });
   const { transaction_hash } = await boundPrivateSubmit(input.account.strk20InvokeTransaction(actions));
   return transaction_hash;
+}
+
+// Token parked in an open commitment. Used when claiming with a pasted key
+// (no local listing row) so the OPEN note matches the escrowed asset.
+export async function escrowCommitmentToken(
+  provider: ProviderInterface,
+  escrow: string,
+  claimHash: string,
+): Promise<string | null> {
+  try {
+    const r = await provider.callContract({
+      contractAddress: escrow,
+      entrypoint: "get_commitment",
+      calldata: [claimHash],
+    });
+    const token = r[0];
+    return token && BigInt(token) !== 0n ? token : null;
+  } catch {
+    return null;
+  }
 }
