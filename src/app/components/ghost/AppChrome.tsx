@@ -27,7 +27,7 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     refreshRemoteListings();
-  }, [providerIndex]);
+  }, [providerIndex, path]);
 
   return (
     <div className="gd">

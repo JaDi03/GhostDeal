@@ -79,6 +79,55 @@ export async function saveMarketplaceListing(
   ]);
 }
 
+export type ListingStatusPatch = {
+  status: "open" | "locked" | "released";
+  refundHash?: string;
+  payTxHash?: string;
+  claimTxHash?: string;
+};
+
+async function loadStoredListing(
+  call: RedisCall,
+  network: MarketplaceNetwork,
+  id: string,
+): Promise<{ raw: string; usedLegacy: boolean } | null> {
+  const scopedRes = await call([["get", itemKey(network, id)]]);
+  let stored = (scopedRes.result as (string | null)[])[0];
+  let usedLegacy = false;
+  if (!stored && network === "sepolia") {
+    const legacyRes = await call([["get", legacyItemKey(id)]]);
+    stored = (legacyRes.result as (string | null)[])[0];
+    usedLegacy = Boolean(stored);
+  }
+  if (!stored) return null;
+  return { raw: stored, usedLegacy };
+}
+
+// Pay / cash-out / cancel: keep the shared catalog in line with this device.
+export async function patchMarketplaceListing(
+  network: MarketplaceNetwork,
+  id: string,
+  patch: ListingStatusPatch,
+): Promise<"ok" | "not_found"> {
+  const call = redis();
+  if (!call) throw new Error("marketplace storage not configured");
+  const stored = await loadStoredListing(call, network, id);
+  if (!stored) return "not_found";
+  const listing = JSON.parse(stored.raw) as Record<string, unknown>;
+  listing.status = patch.status;
+  if (patch.refundHash !== undefined) listing.refundHash = patch.refundHash;
+  if (patch.claimTxHash !== undefined) listing.claimTxHash = patch.claimTxHash;
+  if (patch.payTxHash !== undefined) {
+    if (patch.payTxHash) listing.payTxHash = patch.payTxHash;
+    else delete listing.payTxHash;
+  }
+  const body = JSON.stringify(listing);
+  const commands: unknown[] = [["set", itemKey(network, id), body]];
+  if (stored.usedLegacy) commands.push(["set", legacyItemKey(id), body]);
+  await call(commands);
+  return "ok";
+}
+
 export async function deleteMarketplaceListing(
   network: MarketplaceNetwork,
   id: string,

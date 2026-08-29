@@ -9,7 +9,9 @@ import {
   allListings,
   isOwnedBy,
   markListingClaimed,
+  markListingClaimedByHash,
   onListingsChanged,
+  refreshRemoteListings,
   reopenListing,
 } from "@/data/listingStore";
 import { getEscrowSecrets } from "@/data/escrowSecrets";
@@ -60,6 +62,7 @@ export default function DealsPage() {
 
   useEffect(() => {
     refresh();
+    refreshRemoteListings();
     return onListingsChanged(refresh);
   }, [refresh, providerIndex]);
 
@@ -224,6 +227,7 @@ export default function DealsPage() {
         setBusyId("");
         return;
       }
+      await refreshRemoteListings();
       const hash = await claimEscrowFunds({
         claimSecret: secret,
         account,
@@ -231,6 +235,7 @@ export default function DealsPage() {
         providerIndex,
         token,
       });
+      markListingClaimedByHash(claimHash, { claimTxHash: hash });
       setWaiting(true);
       setNote(`Submitted. Waiting for the chain to close the escrow… ${hash}`);
       const closed = await waitClosed(claimHash);
@@ -245,6 +250,7 @@ export default function DealsPage() {
       } else {
         const closed = await waitClosed(claimHash, 6);
         if (closed) {
+          markListingClaimedByHash(claimHash, { claimTxHash: "on-chain (hash pending)" });
           setNote(`Cashed out on-chain (hash pending).`);
         } else {
           setError(
