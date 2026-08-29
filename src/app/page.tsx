@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import ListingCard from "./components/ghost/ListingCard";
-import { allListings, onListingsChanged, refreshRemoteListings } from "@/data/listingStore";
+import { allListings, getMarketplaceConfigured, onListingsChanged, refreshRemoteListings } from "@/data/listingStore";
 import { type ListingStatus } from "@/data/listings";
 import { useFrontendProvider } from "@/app/components/client/provider/providerContext";
 import {
@@ -20,12 +20,16 @@ export default function HomePage() {
   const [filter, setFilter] = useState<(typeof FILTERS)[number]["id"]>("all");
   const [rows, setRows] = useState<ReturnType<typeof allListings>>([]);
   const [loaded, setLoaded] = useState(false);
+  const [marketplaceOn, setMarketplaceOn] = useState<boolean | null>(null);
   const providerIndex = useFrontendProvider((s) => s.currentFrontendProviderIndex);
   const networkName = marketplaceNetworkLabel(marketplaceNetworkFromIndex(providerIndex));
   useEffect(() => {
     let cancelled = false;
     setLoaded(false);
-    const refresh = () => setRows(allListings());
+    const refresh = () => {
+      setRows(allListings());
+      setMarketplaceOn(getMarketplaceConfigured());
+    };
     refresh();
     const off = onListingsChanged(refresh);
     refreshRemoteListings().finally(() => {
@@ -52,6 +56,11 @@ export default function HomePage() {
         <span className="gdOrange">Hide the rest.</span>
       </h1>
       <p className="gdLead">Pay in person. The other side never sees your balance.</p>
+      {marketplaceOn === false ? (
+        <p className="gdAlert" role="alert">
+          Marketplace storage is off. What you see here stays in this browser. Set UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN on Vercel (and .env.local), then redeploy.
+        </p>
+      ) : null}
       <div className="gdChips">
         {FILTERS.map((f) => (
           <button
@@ -72,7 +81,9 @@ export default function HomePage() {
             <p className="gdEmptyTitle">No listings yet</p>
             <p className="gdEmptyLead">
               {rows.length === 0
-                ? `Nothing for sale on ${networkName} yet. Connect and publish from Sell.`
+                ? marketplaceOn === false
+                  ? "Marketplace storage is off on this server. Listings stay in this browser until UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN are set in Vercel and in .env.local."
+                  : `Nothing for sale on ${networkName} yet. Connect and publish from Sell.`
                 : "Nothing in this filter. Try All or For sale."}
             </p>
           </div>

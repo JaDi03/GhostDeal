@@ -7,8 +7,9 @@ import {
 } from "@/lib/marketplaceRedis";
 
 // Shared marketplace storage on Upstash Redis (REST, free tier). When the env
-// vars are absent the API serves an empty list and rejects writes: the app
-// falls back to local listings. Listings are stored per network (mainnet / sepolia).
+// vars are absent the API serves an empty list and rejects writes. Listings
+// are stored per network (mainnet / sepolia). The client must show that the
+// marketplace is not public until Redis is configured.
 
 export const dynamic = "force-dynamic";
 
@@ -45,14 +46,15 @@ function sanitize(raw: unknown): { id: string; title: string; price: string; tok
 }
 
 export async function GET(request: Request) {
+  const configured = redisConfigured();
   const network = networkFromRequest(request);
-  if (!network) return NextResponse.json({ listings: [] });
-  if (!redisConfigured()) return NextResponse.json({ listings: [] });
+  if (!network) return NextResponse.json({ listings: [], configured });
+  if (!configured) return NextResponse.json({ listings: [], configured: false });
   try {
     const listings = await listMarketplaceListings(network);
-    return NextResponse.json({ listings });
+    return NextResponse.json({ listings, configured: true });
   } catch {
-    return NextResponse.json({ listings: [] });
+    return NextResponse.json({ listings: [], configured: true });
   }
 }
 

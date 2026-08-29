@@ -1,16 +1,20 @@
 import type { Listing } from "@/data/listings";
 import type { MarketplaceNetwork } from "@/lib/marketplaceNetwork";
 
-// Shared marketplace on the app's own API. Best-effort by design: any failure
-// degrades to the local-only view and never blocks publishing or paying.
-export async function fetchRemoteListings(network: MarketplaceNetwork): Promise<Listing[]> {
+export type RemoteListingsResult = { listings: Listing[]; configured: boolean };
+
+// Shared marketplace on the app's own API (Upstash via /api/listings).
+export async function fetchRemoteListings(network: MarketplaceNetwork): Promise<RemoteListingsResult> {
   try {
     const res = await fetch(`/api/listings?network=${network}`, { cache: "no-store" });
-    if (!res.ok) return [];
-    const data = (await res.json()) as { listings?: Listing[] };
-    return Array.isArray(data.listings) ? data.listings : [];
+    if (!res.ok) return { listings: [], configured: false };
+    const data = (await res.json()) as { listings?: Listing[]; configured?: boolean };
+    return {
+      listings: Array.isArray(data.listings) ? data.listings : [],
+      configured: data.configured === true,
+    };
   } catch {
-    return [];
+    return { listings: [], configured: false };
   }
 }
 

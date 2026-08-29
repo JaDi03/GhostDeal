@@ -91,16 +91,24 @@ export function allListings(): Listing[] {
 }
 
 const remoteCache: Partial<Record<MarketplaceNetwork, Listing[]>> = {};
+let marketplaceConfigured: boolean | null = null;
+
+export function getMarketplaceConfigured(): boolean | null {
+  return marketplaceConfigured;
+}
 
 // Pulls the shared marketplace into the cache. Failures keep the previous
 // cache: a storage hiccup must not blank the marketplace view.
 export async function refreshRemoteListings() {
   const network = currentNetwork();
   notifyListingsChanged();
-  const rows = await fetchRemoteListings(network);
+  const { listings: rows, configured } = await fetchRemoteListings(network);
+  marketplaceConfigured = configured;
   const prev = remoteCache[network] ?? [];
   if (rows.length > 0 || prev.length === 0) {
     remoteCache[network] = rows;
+    notifyListingsChanged();
+  } else {
     notifyListingsChanged();
   }
 }

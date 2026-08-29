@@ -63,8 +63,9 @@ function SellForm() {
   const [mine, setMine] = useState<Listing[]>([]);
   // Set right after a first publish: the claim key is shown once, like a seed
   // phrase. It is the only thing that can open the payout.
-  const [published, setPublished] = useState<{ id: string; secret: string } | null>(null);
+  const [published, setPublished] = useState<{ id: string; secret: string; shared: boolean } | null>(null);
   const [claimCopied, setClaimCopied] = useState(false);
+  const [publishing, setPublishing] = useState(false);
 
   useEffect(() => {
     setMine(listingsOwnedBy(address));
@@ -99,7 +100,7 @@ function SellForm() {
     }
   }
 
-  function onSubmit(e: React.FormEvent) {
+  async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!title.trim() || !price.trim() || !address) return;
     if (!image) {
@@ -132,14 +133,20 @@ function SellForm() {
       setPhotoError("Could not save on this phone. Try a smaller photo.");
       return;
     }
-    // New listings go to the shared marketplace too; edits stay local. Best
-    // effort: a storage failure must not lose the local publish.
-    if (!existing) publishRemoteListing(listing, marketplaceNetworkFromIndex(providerIndex)).catch(() => undefined);
+    let shared = Boolean(existing);
+    if (!existing) {
+      setPublishing(true);
+      try {
+        shared = await publishRemoteListing(listing, marketplaceNetworkFromIndex(providerIndex));
+      } finally {
+        setPublishing(false);
+      }
+    }
     if (existingSecret) {
       router.push(`/listing/${id}`);
       return;
     }
-    setPublished({ id, secret: claimSecret });
+    setPublished({ id, secret: claimSecret, shared });
   }
 
   function onDeleteMine(id: string) {
@@ -153,6 +160,13 @@ function SellForm() {
       <>
         <h1 className="gdH1">Published</h1>
         <p className="gdLead">Save this key somewhere safe. It is the only way to cash out.</p>
+        {!published.shared ? (
+          <p className="gdAlert" role="alert">
+            This listing is only on this browser. The public marketplace is off until UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN are set on the server (Vercel env), then publish again.
+          </p>
+        ) : (
+          <p className="gdMeta">Anyone on this network can see the listing. The claim key stays on this browser.</p>
+        )}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "var(--gd-raised2)", border: "1px solid var(--gd-line)", borderRadius: 12, padding: "10px 14px", margin: "14px 0" }}>
           <span style={{ fontFamily: "var(--font-mono-ui), monospace", fontSize: 14, color: "var(--gd-dim)", letterSpacing: "0.08em" }}>
             0x • • • • • • • •
@@ -186,7 +200,7 @@ function SellForm() {
   return (
     <>
       <h1 className="gdH1">{editId ? "Edit" : "Sell"}</h1>
-      <p className="gdLead">Saved on this phone until escrow is live.</p>
+      <p className="gdLead">Buyers on any device see it when marketplace storage is on.</p>
       <form className="gdForm" onSubmit={onSubmit}>
         <label className="gdFilePick">
           <input type="file" accept="image/*" onChange={onPhoto} />
@@ -206,8 +220,8 @@ function SellForm() {
         </select>
         <input value={seller} onChange={(e) => setSeller(e.target.value)} placeholder="Alias" />
         <textarea value={blurb} onChange={(e) => setBlurb(e.target.value)} placeholder="Short note" rows={3} />
-        <button type="submit" className="gdBtn gdBtnOrange">
-          {editId ? "Save changes" : "Publish"}
+        <button type="submit" className="gdBtn gdBtnOrange" disabled={publishing}>
+          {publishing ? "Publishing…" : editId ? "Save changes" : "Publish"}
         </button>
       </form>
       {mine.length > 0 ? (
