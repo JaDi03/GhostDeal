@@ -251,7 +251,11 @@ export default function AccountPage() {
         </form>
       ) : null}
 
-      <div className="gdChips" style={{ marginTop: 18, marginBottom: 8 }} role="group" aria-label="Token">
+      <p className="gdLead" style={{ marginTop: 10, marginBottom: 4 }}>
+        To buy you need shielded STRK for fees, and shielded USDC to pay. STRK listings spend shielded STRK.
+      </p>
+
+      <div className="gdChips" style={{ marginTop: 10, marginBottom: 8 }} role="group" aria-label="Token">
         {(["STRK", "USDC"] as ListingToken[]).map((token) => (
           <button
             key={token}
@@ -276,7 +280,7 @@ export default function AccountPage() {
         ) : balanceFailed ? (
           "Unavailable"
         ) : (
-          "—"
+          "Hidden"
         )}
       </div>
       <button
@@ -297,9 +301,11 @@ export default function AccountPage() {
         </p>
       ) : null}
 
+      <p className="gdMeta" style={{ marginTop: 16, marginBottom: 8 }}>
+        Amount to shield
+      </p>
       <form
         className="gdForm"
-        style={{ marginTop: 16 }}
         onSubmit={(e) => {
           e.preventDefault();
           onShield();
@@ -334,9 +340,8 @@ export default function AccountPage() {
         </p>
       ) : null}
       <p className="gdMeta">
-        {fee !== null ? `Fee ${formatWei(fee)} STRK per op. ` : ""}
-        {asset === "USDC" ? "Fee is paid in STRK. " : ""}
         Unshield is public.
+        {fee !== null ? ` Fee ${formatWei(fee)} STRK per op.` : ""}
       </p>
     </>
   );
