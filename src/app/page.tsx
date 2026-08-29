@@ -41,8 +41,9 @@ export default function HomePage() {
     };
   }, [providerIndex]);
   const listings = useMemo(() => {
-    if (filter === "all") return rows;
-    return rows.filter((l) => l.status === filter);
+    const active = rows.filter((l) => l.status !== "released");
+    if (filter === "all") return active;
+    return active.filter((l) => l.status === filter);
   }, [filter, rows]);
 
   return (
@@ -80,7 +81,7 @@ export default function HomePage() {
           <div className="gdEmpty">
             <p className="gdEmptyTitle">No listings yet</p>
             <p className="gdEmptyLead">
-              {rows.length === 0
+              {rows.filter((l) => l.status !== "released").length === 0
                 ? marketplaceOn === false
                   ? "Marketplace storage is off on this server. Listings stay in this browser until UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN are set in Vercel and in .env.local."
                   : `Nothing for sale on ${networkName} yet. Connect and publish from Sell.`

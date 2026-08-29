@@ -31,6 +31,24 @@ export async function publishRemoteListing(listing: Listing, network: Marketplac
   }
 }
 
+export async function patchRemoteListing(listing: Listing, network: MarketplaceNetwork): Promise<boolean> {
+  try {
+    const res = await fetch(`/api/listings/${listing.id}?network=${network}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        status: listing.status,
+        refundHash: listing.refundHash,
+        payTxHash: listing.payTxHash ?? "",
+        claimTxHash: listing.claimTxHash,
+      }),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
 export async function deleteRemoteListing(
   id: string,
   ownerAddress: string,

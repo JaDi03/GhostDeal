@@ -1,7 +1,7 @@
 "use client";
 
 import { type Listing } from "@/data/listings";
-import { fetchRemoteListings } from "@/lib/marketplace";
+import { fetchRemoteListings, patchRemoteListing } from "@/lib/marketplace";
 import { marketplaceNetworkFromIndex, type MarketplaceNetwork } from "@/lib/marketplaceNetwork";
 import { sameAddress } from "@/data/accountStore";
 import { useFrontendProvider } from "@/app/components/client/provider/providerContext";
@@ -81,17 +81,44 @@ export function removeListing(id: string) {
   notifyListingsChanged();
 }
 
+const remoteCache: Partial<Record<MarketplaceNetwork, Listing[]>> = {};
+let marketplaceConfigured: boolean | null = null;
+
+function statusRank(status: Listing["status"]): number {
+  if (status === "released") return 2;
+  if (status === "locked") return 1;
+  return 0;
+}
+
+function mergeListing(a: Listing, b: Listing): Listing {
+  const [winner, other] = statusRank(a.status) >= statusRank(b.status) ? [a, b] : [b, a];
+  return {
+    ...other,
+    ...winner,
+    payTxHash: winner.payTxHash ?? other.payTxHash,
+    claimTxHash: winner.claimTxHash ?? other.claimTxHash,
+    refundHash: winner.refundHash ?? other.refundHash,
+  };
+}
+
 export function allListings(): Listing[] {
   const network = currentNetwork();
   const hidden = new Set(loadHiddenIds());
-  const local = loadExtraListings().filter((row) => !hidden.has(row.id));
-  const seen = new Set(local.map((row) => row.id));
-  const remote = (remoteCache[network] ?? []).filter((row) => !hidden.has(row.id) && !seen.has(row.id));
-  return [...local, ...remote];
+  const byId = new Map<string, Listing>();
+  for (const row of loadExtraListings()) {
+    if (!hidden.has(row.id)) byId.set(row.id, row);
+  }
+  for (const row of remoteCache[network] ?? []) {
+    if (hidden.has(row.id)) continue;
+    const existing = byId.get(row.id);
+    byId.set(row.id, existing ? mergeListing(existing, row) : row);
+  }
+  return [...byId.values()];
 }
 
-const remoteCache: Partial<Record<MarketplaceNetwork, Listing[]>> = {};
-let marketplaceConfigured: boolean | null = null;
+function syncRemoteListing(listing: Listing) {
+  patchRemoteListing(listing, currentNetwork()).catch(() => undefined);
+}
 
 export function getMarketplaceConfigured(): boolean | null {
   return marketplaceConfigured;
@@ -128,21 +155,39 @@ export function lockListing(
 ) {
   const current = allListings().find((row) => row.id === id);
   if (!current) return;
-  saveExtraListing({ ...current, ...patch, status: "locked" });
+  const next = { ...current, ...patch, status: "locked" as const };
+  saveExtraListing(next);
+  syncRemoteListing(next);
 }
 
 // Seller cashed out: the commitment is closed on-chain, the deal is done.
 export function markListingClaimed(id: string, patch: Pick<Listing, "claimTxHash">) {
-  const current = allListings().find((row) => row.id === id);
+  const network = currentNetwork();
+  const current =
+    allListings().find((row) => row.id === id) ??
+    (remoteCache[network] ?? []).find((row) => row.id === id);
   if (!current) return;
-  saveExtraListing({ ...current, ...patch, status: "released" });
+  const next = { ...current, ...patch, status: "released" as const };
+  saveExtraListing(next);
+  syncRemoteListing(next);
+}
+
+export function markListingClaimedByHash(claimHash: string, patch: Pick<Listing, "claimTxHash">) {
+  const network = currentNetwork();
+  const current =
+    allListings().find((row) => row.claimHash === claimHash) ??
+    (remoteCache[network] ?? []).find((row) => row.claimHash === claimHash);
+  if (!current) return;
+  markListingClaimed(current.id, patch);
 }
 
 // Buyer refund landed: the escrow is closed and the item can sell again.
 export function reopenListing(id: string) {
   const current = allListings().find((row) => row.id === id);
   if (!current) return;
-  saveExtraListing({ ...current, status: "open", payTxHash: undefined });
+  const next = { ...current, status: "open" as const, payTxHash: undefined };
+  saveExtraListing(next);
+  syncRemoteListing(next);
 }
 
 export function claimOrphanListings(address: string) {
