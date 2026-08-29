@@ -132,12 +132,16 @@ if (!(await isDeployed(provider, keys.address))) {
   }
   console.log("• Deploying the deployer account (OpenZeppelin)…");
   try {
-    const { transaction_hash } = await account.deployAccount({
-      classHash: keys.oz_class,
-      constructorCalldata: CallData.compile({ publicKey }),
-      addressSalt: keys.salt,
-      contractAddress: keys.address,
-    });
+    const { transaction_hash } = await account.deployAccount(
+      {
+        classHash: keys.oz_class,
+        constructorCalldata: CallData.compile({ publicKey }),
+        addressSalt: keys.salt,
+        contractAddress: keys.address,
+      },
+      // tip 0 skips getEstimateTip (getBlockWithTxs), which fails with "fetch failed" on several RPCs.
+      { resourceBounds: feeBounds(), tip: 0n },
+    );
     await waitTx(provider, transaction_hash, "account deploy");
   } catch (e) {
     fail(
@@ -161,7 +165,7 @@ try {
   console.log(`• Escrow class already declared: ${classHash}`);
 } catch {
   console.log("• Declaring escrow class…");
-  const resp = await account.declare({ contract: sierra, casm }, { resourceBounds: feeBounds() });
+  const resp = await account.declare({ contract: sierra, casm }, { resourceBounds: feeBounds(), tip: 0n });
   await waitTx(provider, resp.transaction_hash, "declare");
   classHash = resp.class_hash;
 }
@@ -176,7 +180,7 @@ const { transaction_hash } = await account.execute(
     entrypoint: "deployContract",
     calldata: [classHash, salt, "0x0", String(constructorCalldata.length), ...constructorCalldata],
   },
-  { resourceBounds: feeBounds() },
+  { resourceBounds: feeBounds(), tip: 0n },
 );
 await waitTx(provider, transaction_hash, "escrow deploy");
 
