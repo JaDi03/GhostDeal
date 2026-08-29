@@ -20,8 +20,10 @@ import {
   claimEscrowFunds,
   commitmentHashFromSecret,
   escrowAddressForIndex,
+  escrowCommitmentToken,
   escrowDepositState,
   isZeroAddress,
+  tokenAddressForListing,
 } from "@/lib/escrow";
 
 // On-chain commitment state per claimHash; local listing status can lag behind it.
@@ -108,6 +110,7 @@ export default function DealsPage() {
         account,
         wallet,
         providerIndex,
+        token: tokenAddressForListing(listing.token, providerIndex),
       });
       markListingClaimed(listing.id, { claimTxHash: hash });
       setWaiting(true);
@@ -157,6 +160,7 @@ export default function DealsPage() {
         account,
         wallet,
         providerIndex,
+        token: tokenAddressForListing(listing.token, providerIndex),
       });
       setNote(`Submitted. Waiting for the chain to close the escrow… ${hash}`);
       setWaiting(true);
@@ -204,7 +208,20 @@ export default function DealsPage() {
     const claimHash = commitmentHashFromSecret(secret);
     setBusyId("key");
     try {
-      const hash = await claimEscrowFunds({ claimSecret: secret, account, wallet, providerIndex });
+      const escrowAddr = escrowAddressForIndex(providerIndex);
+      const token = await escrowCommitmentToken(myFrontendProviders[providerIndex], escrowAddr, claimHash);
+      if (!token) {
+        setError("No open escrow found for that claim key on this network.");
+        setBusyId("");
+        return;
+      }
+      const hash = await claimEscrowFunds({
+        claimSecret: secret,
+        account,
+        wallet,
+        providerIndex,
+        token,
+      });
       setWaiting(true);
       setNote(`Submitted. Waiting for the chain to close the escrow… ${hash}`);
       const closed = await waitClosed(claimHash);
@@ -252,7 +269,7 @@ export default function DealsPage() {
     return (
       <ConnectGate
         title="Deals"
-        lead="Connect a wallet to see your deals. Until then you can only browse the marketplace."
+        lead="Connect to cancel a payment or cash out a sale."
       />
     );
   }
@@ -261,18 +278,17 @@ export default function DealsPage() {
     <>
       <h1 className="gdH1">Deals</h1>
       <p className="gdLead">
-        Buyer actions for listings you paid. Seller actions for your listings. Escrow state comes straight from the
-        chain.
+        Cancel a payment you made, or cash out when someone pays your listing.
       </p>
       {!escrowReady ? (
-        <p className="gdMeta">Escrow is not deployed on this network. Deploy cairo/ and set the address in .env.local.</p>
+        <p className="gdMeta">Escrow is not deployed on this network.</p>
       ) : null}
       {error ? <p className="gdMeta">{error}</p> : null}
       {note ? <p className="gdMeta" style={{ wordBreak: "break-all" }}>{note}</p> : null}
 
-      <h2 className="gdCardTitle">As buyer</h2>
+      <h2 className="gdCardTitle">You bought</h2>
       {bought.length === 0 ? (
-        <p className="gdMeta">Nothing bought yet. Pay a listing to see it here.</p>
+        <p className="gdMeta">None yet. Pay a listing on Home.</p>
       ) : (
         bought.map((listing) => {
           const state = stateOf(listing);
@@ -309,10 +325,10 @@ export default function DealsPage() {
       )}
 
       <h2 className="gdCardTitle" style={{ marginTop: 22 }}>
-        As seller
+        You sold
       </h2>
       {selling.length === 0 ? (
-        <p className="gdMeta">No listings yet. Publish one from Sell to get paid here.</p>
+        <p className="gdMeta">None yet. Publish from Sell. When someone pays, cash out here.</p>
       ) : (
         selling.map((listing) => {
           const state = stateOf(listing);
@@ -373,7 +389,7 @@ export default function DealsPage() {
             Cash out with a saved key
           </button>
         )}
-        <p className="gdMeta">Works on any device: the payout goes to the private balance of the connected wallet.</p>
+        <p className="gdMeta">If you published on another phone, paste the key you saved then.</p>
       </div>
     </>
   );

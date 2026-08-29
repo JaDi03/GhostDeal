@@ -6,7 +6,7 @@ import { lockListing } from "@/data/listingStore";
 import { saveRefundSecret } from "@/data/escrowSecrets";
 import { useStoreWallet } from "@/app/components/Wallet/walletContext";
 import { useFrontendProvider } from "@/app/components/client/provider/providerContext";
-import { addrSTRK, myFrontendProviders } from "@/utils/constants";
+import { myFrontendProviders } from "@/utils/constants";
 import {
   commitmentHashFromSecret,
   escrowAddressForIndex,
@@ -16,9 +16,11 @@ import {
   payListingDeposit,
   poolAddressForIndex,
   poolFeeAmount,
+  priceToWei,
   randomFeltSecret,
   shieldedBalance,
   shieldTokens,
+  tokenAddressForListing,
 } from "@/lib/escrow";
 
 export default function PayModal({
@@ -59,7 +61,14 @@ export default function PayModal({
       return;
     }
     let cancelled = false;
-    shieldedBalance(account, addrSTRK).then((value) => {
+    let tokenAddr: string;
+    try {
+      tokenAddr = tokenAddressForListing(listing.token, providerIndex);
+    } catch {
+      setShielded(null);
+      return;
+    }
+    shieldedBalance(account, tokenAddr).then((value) => {
       if (!cancelled) setShielded(value);
     });
     // A deposit may have landed even when the wallet call timed out: the
@@ -78,16 +87,23 @@ export default function PayModal({
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, account, providerIndex]);
+  }, [open, account, providerIndex, listing.token]);
 
   if (!open) return null;
 
   const escrow = escrowAddressForIndex(providerIndex);
   const escrowReady = !isZeroAddress(escrow);
-  const priceWei = /^\d+$/.test(listing.price) ? BigInt(listing.price) * 10n ** 18n : null;
+  const feeIsSameToken = listing.token === "STRK";
+  let priceWei: bigint | null = null;
+  try {
+    priceWei = priceToWei(listing.price, listing.token);
+  } catch {
+    priceWei = null;
+  }
   const feeWei = fee ?? 0n;
-  // Paying is itself a private operation: the pool fee comes on top of the price.
-  const neededWei = priceWei !== null ? priceWei + feeWei : null;
+  // STRK listings: pool fee is deducted from the same token. USDC listings:
+  // the price is USDC; the flat pool fee is still charged in STRK by the wallet.
+  const neededWei = priceWei !== null ? (feeIsSameToken ? priceWei + feeWei : priceWei) : null;
   const insufficient = shielded !== null && neededWei !== null && shielded < neededWei;
   // Unreadable balance (fresh wallet, wallet backend error) also gets the
   // shield offer: most such users simply have nothing shielded yet.
@@ -96,22 +112,30 @@ export default function PayModal({
   async function onShield() {
     setError("");
     if (!account || priceWei === null) return;
-    // Shield price + two pool fees: the shield itself is one private operation
-    // (its fee is deducted), and the payment will need one more on top.
-    const amountWei = priceWei + 2n * feeWei;
+    const tokenAddr = tokenAddressForListing(listing.token, providerIndex);
+    // STRK: shield price + two pool fees (shield fee + upcoming pay fee).
+    // USDC: shield the price only; pool fees are paid in STRK separately.
+    const amountWei = feeIsSameToken ? priceWei + 2n * feeWei : priceWei;
     setBusy(true);
     try {
-      await shieldTokens({ account, token: addrSTRK, amountWei });
+      await shieldTokens({ account, token: tokenAddr, amountWei });
       // The wallet balance read can prompt again and hang; set what we know
-      // landed instead of re-reading: old balance + price + one fee.
-      setShielded((prev) => (prev === null ? null : prev + priceWei + feeWei));
+      // landed instead of re-reading.
+      setShielded((prev) => {
+        if (prev === null) return null;
+        return feeIsSameToken ? prev + priceWei + feeWei : prev + priceWei;
+      });
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Shield failed.";
-      setError(
-        /^timeout$/i.test(message)
-          ? "The wallet timed out. The shield can still land; close and reopen this panel to recheck."
-          : message,
-      );
+      if (/NOT_REGISTERED|not registered|viewing key/i.test(message)) {
+        setError(
+          "This wallet is not registered in the STRK20 privacy pool yet. In Ready, open Privacy / Shield and complete registration (or shield a little STRK first), then try again.",
+        );
+      } else if (/^timeout$/i.test(message)) {
+        setError("The wallet timed out. The shield can still land; close and reopen this panel to recheck.");
+      } else {
+        setError(message);
+      }
     } finally {
       setBusy(false);
     }
@@ -175,7 +199,7 @@ export default function PayModal({
         </div>
         {shielded !== null ? (
           <p className="gdMeta">
-            Shielded balance: {formatWei(shielded)} {listing.token}
+            Shielded balance: {formatWei(shielded, listing.token)} {listing.token}
           </p>
         ) : account ? (
           <p className="gdMeta">Shielded balance: this wallet could not report it.</p>
@@ -184,15 +208,20 @@ export default function PayModal({
           <>
             <p className="gdMeta gdOrange" style={{ marginBottom: 10 }}>
               {insufficient
-                ? `You need ${listing.price} ${listing.token} plus the pool fee to pay in private. You have ${formatWei(shielded ?? 0n)} shielded.`
+                ? feeIsSameToken
+                  ? `You need ${listing.price} ${listing.token} plus the pool fee to pay in private. You have ${formatWei(shielded ?? 0n, listing.token)} shielded.`
+                  : `You need ${listing.price} ${listing.token} shielded to pay. You have ${formatWei(shielded ?? 0n, listing.token)} shielded.`
                 : "Your wallet could not report a shielded balance: if you have never shielded, start here."}{" "}
-              The pool charges {formatWei(feeWei)} STRK per private operation (shield now, pay later); the shield
-              button below already includes both.
+              {feeIsSameToken
+                ? `The pool charges ${formatWei(feeWei)} STRK per private operation (shield now, pay later); the shield button below already includes both.`
+                : `The pool charges ${formatWei(feeWei)} STRK per private operation. Keep some STRK available for fees; this shield only covers the USDC price.`}
             </p>
             <button type="button" className="gdBtn gdBtnGhost" onClick={onShield} disabled={busy}>
               {busy
                 ? "Shielding…"
-                : `Shield ${priceWei !== null ? formatWei(priceWei + 2n * feeWei) : listing.price} ${listing.token} (price + 2 pool fees)`}
+                : feeIsSameToken
+                  ? `Shield ${priceWei !== null ? formatWei(priceWei + 2n * feeWei, listing.token) : listing.price} ${listing.token} (price + 2 pool fees)`
+                  : `Shield ${listing.price} ${listing.token}`}
             </button>
           </>
         ) : null}
