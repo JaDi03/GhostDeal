@@ -18,7 +18,6 @@ import {
   poolFeeAmount,
   priceToWei,
   randomFeltSecret,
-  readShieldedBalance,
   shieldTokens,
   tokenAddressForListing,
 } from "@/lib/escrow";
@@ -39,7 +38,8 @@ export default function PayModal({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [txHash, setTxHash] = useState(listing.payTxHash ?? "");
-  // null = the wallet cannot report it (older connector); don't block Pay then.
+  // null until a shield succeeds while a prior reading existed; Pay does not
+  // request a share-balance prompt on open.
   const [shielded, setShielded] = useState<bigint | null>(null);
   const [fee, setFee] = useState<bigint | null>(null);
   const [refundKey, setRefundKey] = useState("");
@@ -62,25 +62,9 @@ export default function PayModal({
       return;
     }
     let cancelled = false;
-    let tokenAddr: string;
-    try {
-      tokenAddr = tokenAddressForListing(listing.token, providerIndex);
-    } catch {
-      setShielded(null);
-      return;
-    }
-    readShieldedBalance(account, tokenAddr).then(
-      (value) => {
-        if (!cancelled) setShielded(value);
-      },
-      (err: unknown) => {
-        if (cancelled) return;
-        setShielded(null);
-        setError(friendlyPrivateError(err, "Could not read shielded balance."));
-      },
-    );
-    // A deposit may have landed even when the wallet call timed out: the
-    // chain is the source of truth, so reconcile on open.
+    // Do not call strk20Balances here: wallets gate it behind a share-balance
+    // prompt, and Pay does not need that consent. Reconcile on-chain in case a
+    // prior deposit landed after the wallet relay timed out.
     const escrowAddr = escrowAddressForIndex(providerIndex);
     if (!cancelled && listing.claimHash && !isZeroAddress(escrowAddr)) {
       escrowDepositState(myFrontendProviders[providerIndex], escrowAddr, listing.claimHash).then((state) => {
@@ -95,7 +79,7 @@ export default function PayModal({
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, account, providerIndex, listing.token]);
+  }, [open, account, providerIndex]);
 
   if (!open) return null;
 
@@ -113,8 +97,8 @@ export default function PayModal({
   // the price is USDC; the flat pool fee is still charged in STRK by the wallet.
   const neededWei = priceWei !== null ? (feeIsSameToken ? priceWei + feeWei : priceWei) : null;
   const insufficient = shielded !== null && neededWei !== null && shielded < neededWei;
-  // Unreadable balance (fresh wallet, wallet backend error) also gets the
-  // shield offer: most such users simply have nothing shielded yet.
+  // Unknown balance (Pay does not prompt to share it) also gets the shield
+  // offer: most such users simply have nothing shielded yet.
   const offerShield = account !== null && priceWei !== null && (shielded === null || insufficient);
 
   async function onShield() {
@@ -210,8 +194,6 @@ export default function PayModal({
           <p className="gdMeta">
             Shielded balance: {formatWei(shielded, listing.token)} {listing.token}
           </p>
-        ) : account && !error ? (
-          <p className="gdMeta">Shielded balance: this wallet could not report it.</p>
         ) : null}
         {offerShield ? (
           <>
@@ -220,7 +202,7 @@ export default function PayModal({
                 ? feeIsSameToken
                   ? `You need ${listing.price} ${listing.token} plus the pool fee to pay in private. You have ${formatWei(shielded ?? 0n, listing.token)} shielded.`
                   : `You need ${listing.price} ${listing.token} shielded to pay. You have ${formatWei(shielded ?? 0n, listing.token)} shielded.`
-                : "Your wallet could not report a shielded balance: if you have never shielded, start here."}{" "}
+                : "Pay uses your shielded balance. If you have not shielded this token yet, start here."}{" "}
               {feeIsSameToken
                 ? `The pool charges ${formatWei(feeWei)} STRK per private operation (shield now, pay later); the shield button below already includes both.`
                 : `The pool charges ${formatWei(feeWei)} STRK per private operation. Keep some STRK available for fees; this shield only covers the USDC price.`}

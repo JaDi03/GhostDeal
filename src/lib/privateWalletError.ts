@@ -27,7 +27,12 @@ export function isPrivateTokensOffError(err: unknown): boolean {
   return /NOT_REGISTERED|not registered|viewing key/i.test(privateErrorText(err));
 }
 
+export function isUserRefusedError(err: unknown): boolean {
+  return /USER_REFUSED/i.test(privateErrorText(err));
+}
+
 export function friendlyPrivateError(err: unknown, fallback: string): string {
   if (isPrivateTokensOffError(err)) return PRIVATE_TOKENS_OFF;
+  if (isUserRefusedError(err)) return "You rejected the request in the wallet.";
   return privateErrorText(err) || fallback;
 }

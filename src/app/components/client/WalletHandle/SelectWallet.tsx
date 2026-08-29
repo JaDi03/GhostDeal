@@ -11,6 +11,7 @@ import { StarknetInjectedWallet } from "@starknet-io/get-starknet-wallet-standar
 import type {
   WalletWithStarknetFeatures,
 } from '@starknet-io/get-starknet-wallet-standard/features';
+import { friendlyPrivateError, isUserRefusedError } from "@/lib/privateWalletError";
 
 
 // Normalize wallet identifiers so starknetkit's connector id / SWO name
@@ -180,9 +181,12 @@ export default function SelectWallet({ variant = "ctaBig" }: { variant?: "nav" |
       try {
         await connectReadyInApp();
       } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : "Wallet connection failed.";
         console.log("Wallet connection failed.\n", err);
-        setError(message);
+        setError(
+          isUserRefusedError(err)
+            ? "Connection rejected."
+            : friendlyPrivateError(err, "Wallet connection failed."),
+        );
         setPickerOpen(true);
       } finally {
         setConnecting(false);
@@ -205,9 +209,13 @@ export default function SelectWallet({ variant = "ctaBig" }: { variant?: "nav" |
     try {
       await handleSelectedWallet(w);
       setPickerOpen(false);
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.log("Wallet connection failed.\n", err);
-      setError(err?.message ?? "Wallet connection failed.");
+      setError(
+        isUserRefusedError(err)
+          ? "Connection rejected."
+          : friendlyPrivateError(err, "Wallet connection failed."),
+      );
     } finally {
       setConnecting(false);
     }
