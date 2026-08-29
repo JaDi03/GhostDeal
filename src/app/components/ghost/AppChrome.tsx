@@ -33,10 +33,12 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
     <div className="gd">
       <div className="gdShell">
         <header className="gdHeader">
-          <Link href="/" className="gdBrand">
-            Ghost<span className="gdBrandAccent">Deal</span>
-          </Link>
-          <ThemeToggle />
+          <div className="gdHeaderLead">
+            <Link href="/" className="gdBrand">
+              Ghost<span className="gdBrandAccent">Deal</span>
+            </Link>
+            <ThemeToggle />
+          </div>
           <div className="gdWallet">
             <NetworkSelect />
             <SelectWallet variant="nav" />

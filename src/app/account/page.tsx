@@ -14,50 +14,19 @@ import {
   poolAddressForIndex,
   poolFeeAmount,
   priceToWei,
-  shieldedBalance,
+  readShieldedBalance,
   shieldTokens,
   STRK_DECIMALS,
   tokenAddressForListing,
   unshieldTokens,
 } from "@/lib/escrow";
+import { friendlyPrivateError, isPrivateTokensOffError, privateErrorText } from "@/lib/privateWalletError";
 
 // Whole STRK covering one pool fee, rounded up. Used to seed the shield input
 // with a fee-based default instead of a hard-coded demo amount.
 function wholeStrkForFee(feeWei: bigint): bigint {
   const whole = feeWei / 10n ** STRK_DECIMALS;
   return feeWei % 10n ** STRK_DECIMALS > 0n ? whole + 1n : whole;
-}
-
-// Ready's WalletRPCError often has an empty .message; the code is on toString() or .cause.
-function privateErrorText(err: unknown): string {
-  const chunks: string[] = [];
-  if (err instanceof Error) {
-    if (err.name) chunks.push(err.name);
-    if (err.message) chunks.push(err.message);
-    if (err.cause instanceof Error && err.cause.message) chunks.push(err.cause.message);
-    else if (typeof err.cause === "string") chunks.push(err.cause);
-  } else if (err && typeof err === "object" && "message" in err) {
-    const nested = (err as { message: unknown }).message;
-    if (typeof nested === "string") chunks.push(nested);
-  }
-  try {
-    const asString = String(err);
-    if (asString && asString !== "[object Object]") chunks.push(asString);
-  } catch {
-    /* ignore */
-  }
-  return chunks.join(" ");
-}
-
-function friendlyPrivateError(err: unknown, fallback: string): string {
-  const message = privateErrorText(err) || fallback;
-  if (/NOT_REGISTERED|not registered|viewing key/i.test(message)) {
-    return "Not registered in STRK20 yet. In Ready, open Privacy / Shield first.";
-  }
-  if (/timed out|stopped responding/i.test(message)) {
-    return "Wallet timed out. The tx can still land; refresh in a bit.";
-  }
-  return message || fallback;
 }
 
 export default function AccountPage() {
@@ -133,9 +102,14 @@ export default function AccountPage() {
     setError("");
     setReading(true);
     try {
-      const value = await shieldedBalance(account, tokenAddressForListing(asset, providerIndex));
+      const value = await readShieldedBalance(account, tokenAddressForListing(asset, providerIndex));
       setBalance(value);
-      setBalanceFailed(value === null);
+      setBalanceFailed(false);
+    } catch (err: unknown) {
+      console.warn("[strk20] shieldedBalance failed:", err);
+      setBalance(null);
+      setBalanceFailed(true);
+      setError(friendlyPrivateError(err, "Could not read shielded balance."));
     } finally {
       setReading(false);
     }
@@ -174,7 +148,13 @@ export default function AccountPage() {
       setNote(`Shielded ${amount} ${asset}. Refresh to see it.`);
     } catch (err: unknown) {
       console.error("[GhostDeal] shield failed:", err);
-      setError(friendlyPrivateError(err, "Shield failed."));
+      if (isPrivateTokensOffError(err)) {
+        setError(friendlyPrivateError(err, "Shield failed."));
+      } else if (/timed out|stopped responding/i.test(privateErrorText(err))) {
+        setError("The wallet timed out. The shield can still land; tap Refresh in a bit.");
+      } else {
+        setError(friendlyPrivateError(err, "Shield failed."));
+      }
     } finally {
       setBusy(false);
     }
@@ -202,7 +182,13 @@ export default function AccountPage() {
       setNote(`Unshielded ${asset}. Tx ${hash.slice(0, 10)}…`);
     } catch (err: unknown) {
       console.error("[GhostDeal] unshield failed:", err);
-      setError(friendlyPrivateError(err, "Unshield failed."));
+      if (isPrivateTokensOffError(err)) {
+        setError(friendlyPrivateError(err, "Unshield failed."));
+      } else if (/timed out|stopped responding/i.test(privateErrorText(err))) {
+        setError("The wallet timed out. The unshield can still land; check your public balance in a bit.");
+      } else {
+        setError(friendlyPrivateError(err, "Unshield failed."));
+      }
     } finally {
       setBusy(false);
     }
@@ -292,6 +278,11 @@ export default function AccountPage() {
       >
         {reading ? "Reading…" : balance === null ? "Show balance" : "Refresh"}
       </button>
+      {error ? (
+        <p className="gdAlert" role="alert">
+          {error}
+        </p>
+      ) : null}
       {!escrowReady ? <p className="gdMeta">Escrow not deployed on this network.</p> : null}
 
       {note ? <p className="gdMeta" style={{ marginTop: 12 }}>{note}</p> : null}
@@ -334,11 +325,6 @@ export default function AccountPage() {
           </button>
         </div>
       </form>
-      {error ? (
-        <p className="gdAlert" role="alert">
-          {error}
-        </p>
-      ) : null}
       <p className="gdMeta">
         Unshield is public.
         {fee !== null ? ` Fee ${formatWei(fee)} STRK per op.` : ""}

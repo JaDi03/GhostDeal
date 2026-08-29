@@ -18,10 +18,11 @@ import {
   poolFeeAmount,
   priceToWei,
   randomFeltSecret,
-  shieldedBalance,
+  readShieldedBalance,
   shieldTokens,
   tokenAddressForListing,
 } from "@/lib/escrow";
+import { friendlyPrivateError } from "@/lib/privateWalletError";
 
 export default function PayModal({
   listing,
@@ -68,9 +69,16 @@ export default function PayModal({
       setShielded(null);
       return;
     }
-    shieldedBalance(account, tokenAddr).then((value) => {
-      if (!cancelled) setShielded(value);
-    });
+    readShieldedBalance(account, tokenAddr).then(
+      (value) => {
+        if (!cancelled) setShielded(value);
+      },
+      (err: unknown) => {
+        if (cancelled) return;
+        setShielded(null);
+        setError(friendlyPrivateError(err, "Could not read shielded balance."));
+      },
+    );
     // A deposit may have landed even when the wallet call timed out: the
     // chain is the source of truth, so reconcile on open.
     const escrowAddr = escrowAddressForIndex(providerIndex);
@@ -126,16 +134,12 @@ export default function PayModal({
         return feeIsSameToken ? prev + priceWei + feeWei : prev + priceWei;
       });
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Shield failed.";
-      if (/NOT_REGISTERED|not registered|viewing key/i.test(message)) {
-        setError(
-          "This wallet is not registered in the STRK20 privacy pool yet. In Ready, open Privacy / Shield and complete registration (or shield a little STRK first), then try again.",
-        );
-      } else if (/^timeout$/i.test(message)) {
-        setError("The wallet timed out. The shield can still land; close and reopen this panel to recheck.");
-      } else {
-        setError(message);
-      }
+      const message = friendlyPrivateError(err, "Shield failed.");
+      setError(
+        /^timeout$/i.test(message)
+          ? "The wallet timed out. The shield can still land; close and reopen this panel to recheck."
+          : message,
+      );
     } finally {
       setBusy(false);
     }
@@ -176,7 +180,7 @@ export default function PayModal({
         lockListing(listing.id, { refundHash, payTxHash: "on-chain (hash pending)" });
         setTxHash("on-chain (hash pending)");
       } else {
-        setError(err instanceof Error ? err.message : "Pay failed.");
+        setError(friendlyPrivateError(err, "Pay failed."));
       }
     } finally {
       setBusy(false);
@@ -197,11 +201,16 @@ export default function PayModal({
           <img src={TOKEN_ICON[listing.token]} alt="" />
           {listing.price} {listing.token}
         </div>
+        {error ? (
+          <p className="gdAlert" role="alert">
+            {error}
+          </p>
+        ) : null}
         {shielded !== null ? (
           <p className="gdMeta">
             Shielded balance: {formatWei(shielded, listing.token)} {listing.token}
           </p>
-        ) : account ? (
+        ) : account && !error ? (
           <p className="gdMeta">Shielded balance: this wallet could not report it.</p>
         ) : null}
         {offerShield ? (
@@ -225,7 +234,6 @@ export default function PayModal({
             </button>
           </>
         ) : null}
-        {error ? <p className="gdMeta">{error}</p> : null}
         {txHash ? <p className="gdMeta" style={{ wordBreak: "break-all" }}>Locked. {txHash}</p> : null}
         {txHash && refundKey ? (
           <div style={{ marginTop: 12, marginBottom: 12 }}>

@@ -7,14 +7,11 @@ import {
   isMarketplaceNetwork,
   marketplaceIndexFromNetwork,
   marketplaceNetworkFromIndex,
+  marketplaceNetworkLabel,
   type MarketplaceNetwork,
 } from "@/lib/marketplaceNetwork";
 
 const STORAGE_KEY = "ghostdeal-browse-network";
-const OPTIONS: { id: MarketplaceNetwork; label: string }[] = [
-  { id: "mainnet", label: "Mainnet" },
-  { id: "sepolia", label: "Sepolia" },
-];
 
 export default function NetworkSelect() {
   const isConnected = useStoreWallet((s) => s.isConnected);
@@ -53,25 +50,30 @@ export default function NetworkSelect() {
     }
   }
 
+  function toggle() {
+    const next: MarketplaceNetwork = current === "mainnet" ? "sepolia" : "mainnet";
+    pick(next);
+  }
+
+  const label = marketplaceNetworkLabel(current);
+  const nextLabel = marketplaceNetworkLabel(current === "mainnet" ? "sepolia" : "mainnet");
+
   return (
-    <div className="gdNet" role="group" aria-label="Marketplace network">
-      {OPTIONS.map((option) => (
-        <button
-          key={option.id}
-          type="button"
-          className={current === option.id ? "gdNetBtn gdNetBtnOn" : "gdNetBtn"}
-          onClick={() => pick(option.id)}
-          disabled={isConnected}
-          aria-pressed={current === option.id}
-          title={
-            isConnected
-              ? "Network follows the connected wallet"
-              : `Show the ${option.label} marketplace`
-          }
-        >
-          {option.label}
-        </button>
-      ))}
-    </div>
+    <button
+      type="button"
+      className="gdNet"
+      onClick={toggle}
+      disabled={isConnected}
+      aria-label={
+        isConnected ? `Network ${label}` : `Network ${label}. Tap to switch to ${nextLabel}`
+      }
+      title={
+        isConnected
+          ? "Network follows the connected wallet"
+          : `Switch to ${nextLabel}`
+      }
+    >
+      {label}
+    </button>
   );
 }

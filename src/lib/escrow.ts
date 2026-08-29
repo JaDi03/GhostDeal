@@ -134,20 +134,27 @@ function boundPrivateSubmit<T>(work: Promise<T>): Promise<T> {
 }
 
 // Wallet-mediated read of the user's shielded balance. No viewing key ever
-// reaches the dapp. Returns null when the wallet cannot report it: callers
-// must treat null as "unknown", not as zero, and let the pay attempt proceed.
+// reaches the dapp. Throws when the wallet rejects the request (NOT_REGISTERED,
+// timeout, unsupported method). Callers that must not block on a failed read
+// should use shieldedBalance instead.
+export async function readShieldedBalance(account: WalletAccountV6, token: string): Promise<bigint> {
+  // A wedged relay can leave this read hanging forever, freezing whatever
+  // button triggered it: degrade after a minute instead.
+  const entries = await Promise.race([
+    account.strk20Balances([token]),
+    new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error("shielded balance read timed out")), 60_000),
+    ),
+  ]);
+  const entry = entries.find((e) => sameFelt(e.token, token));
+  return entry ? BigInt(entry.balance) : 0n;
+}
+
+// Same read, but returns null on failure. Callers must treat null as "unknown",
+// not as zero, and let the pay attempt proceed.
 export async function shieldedBalance(account: WalletAccountV6, token: string): Promise<bigint | null> {
   try {
-    // A wedged relay can leave this read hanging forever, freezing whatever
-    // button triggered it: degrade to "unknown" after a minute instead.
-    const entries = await Promise.race([
-      account.strk20Balances([token]),
-      new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error("shielded balance read timed out")), 60_000),
-      ),
-    ]);
-    const entry = entries.find((e) => sameFelt(e.token, token));
-    return entry ? BigInt(entry.balance) : 0n;
+    return await readShieldedBalance(account, token);
   } catch (err: unknown) {
     // Visible on purpose: this error names the real cause (unsupported method,
     // permission, payload) when the wallet rejects the request.
