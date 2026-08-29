@@ -1,39 +1,16 @@
 import { NextResponse } from "next/server";
+import {
+  listMarketplaceListings,
+  networkFromRequest,
+  redisConfigured,
+  saveMarketplaceListing,
+} from "@/lib/marketplaceRedis";
 
 // Shared marketplace storage on Upstash Redis (REST, free tier). When the env
 // vars are absent the API serves an empty list and rejects writes: the app
-// falls back to local listings plus the shipped demo seeds.
+// falls back to local listings. Listings are stored per network (mainnet / sepolia).
 
 export const dynamic = "force-dynamic";
-
-const IDS_KEY = "gd:ids";
-const itemKey = (id: string) => `gd:l:${id}`;
-const MAX_LISTINGS = 200;
-
-type RedisCall = (body: unknown) => Promise<{ result: unknown }>;
-
-function redis(): RedisCall | null {
-  const url = process.env.UPSTASH_REDIS_REST_URL;
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN;
-  if (!url || !token) return null;
-  return async (body) => {
-    const commands = Array.isArray(body) ? body : [];
-    const pipeline = commands.length > 0 && Array.isArray(commands[0]);
-    const endpoint = pipeline ? `${url.replace(/\/$/, "")}/pipeline` : url;
-    const res = await fetch(endpoint, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-      cache: "no-store",
-    });
-    if (!res.ok) throw new Error(`redis ${res.status}`);
-    const json = await res.json();
-    if (pipeline) {
-      return { result: (json as { result: unknown }[]).map((row) => row.result) };
-    }
-    return json as { result: unknown };
-  };
-}
 
 function isFelt(value: unknown): value is string {
   return typeof value === "string" && /^0x[0-9a-fA-F]{1,64}$/.test(value);
@@ -67,35 +44,26 @@ function sanitize(raw: unknown): { id: string; title: string; price: string; tok
   };
 }
 
-export async function GET() {
-  const call = redis();
-  if (!call) return NextResponse.json({ listings: [] });
+export async function GET(request: Request) {
+  const network = networkFromRequest(request);
+  if (!network) return NextResponse.json({ listings: [] });
+  if (!redisConfigured()) return NextResponse.json({ listings: [] });
   try {
-    const idsRes = await call([["lrange", IDS_KEY, "0", "-1"]]);
-    const ids = (idsRes.result as string[][])[0] ?? [];
-    if (ids.length === 0) return NextResponse.json({ listings: [] });
-    const itemsRes = await call([["mget", ...ids.map(itemKey)]]);
-    const rows = ((itemsRes.result as (string | null)[][])[0] ?? [])
-      .filter((v): v is string => Boolean(v))
-      .map((v) => JSON.parse(v))
-      .filter(Boolean);
-    return NextResponse.json({ listings: rows });
+    const listings = await listMarketplaceListings(network);
+    return NextResponse.json({ listings });
   } catch {
     return NextResponse.json({ listings: [] });
   }
 }
 
 export async function POST(request: Request) {
-  const call = redis();
-  if (!call) return NextResponse.json({ error: "marketplace storage not configured" }, { status: 503 });
+  if (!redisConfigured()) return NextResponse.json({ error: "marketplace storage not configured" }, { status: 503 });
+  const network = networkFromRequest(request);
+  if (!network) return NextResponse.json({ error: "network required" }, { status: 400 });
   const listing = sanitize(await request.json().catch(() => null));
   if (!listing) return NextResponse.json({ error: "invalid listing" }, { status: 400 });
   try {
-    await call([
-      ["set", itemKey(listing.id), JSON.stringify({ ...listing, status: "open" })],
-      ["lpush", IDS_KEY, listing.id],
-      ["ltrim", IDS_KEY, "0", String(MAX_LISTINGS - 1)],
-    ]);
+    await saveMarketplaceListing(network, listing);
     return NextResponse.json({ ok: true });
   } catch {
     return NextResponse.json({ error: "storage unavailable" }, { status: 502 });

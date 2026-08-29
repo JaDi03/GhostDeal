@@ -1,10 +1,14 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 import SelectWallet from "../client/WalletHandle/SelectWallet";
 import ThemeToggle from "./ThemeToggle";
+import NetworkSelect from "./NetworkSelect";
 import { useStoreWallet } from "../Wallet/walletContext";
+import { useFrontendProvider } from "../client/provider/providerContext";
+import { refreshRemoteListings } from "@/data/listingStore";
 
 const GUEST_TABS = [{ href: "/", label: "Home" }];
 
@@ -18,7 +22,12 @@ const CONNECTED_TABS = [
 export default function AppChrome({ children }: { children: React.ReactNode }) {
   const path = usePathname();
   const isConnected = useStoreWallet((s) => s.isConnected);
+  const providerIndex = useFrontendProvider((s) => s.currentFrontendProviderIndex);
   const tabs = isConnected ? CONNECTED_TABS : GUEST_TABS;
+
+  useEffect(() => {
+    refreshRemoteListings();
+  }, [providerIndex]);
 
   return (
     <div className="gd">
@@ -29,6 +38,7 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
           </Link>
           <ThemeToggle />
           <div className="gdWallet">
+            <NetworkSelect />
             <SelectWallet variant="nav" />
           </div>
         </header>

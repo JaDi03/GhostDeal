@@ -58,7 +58,7 @@ export default function DealsPage() {
   useEffect(() => {
     refresh();
     return onListingsChanged(refresh);
-  }, [refresh]);
+  }, [refresh, providerIndex]);
 
   // A close on a listing I own is not auto-marked released: from the seller
   // side, my claim and the buyer's cancel are indistinguishable.

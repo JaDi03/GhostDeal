@@ -24,6 +24,10 @@ export const metadata: Metadata = {
   title: "GhostDeal",
   description: "Pay in person without showing your balance.",
   applicationName: "GhostDeal",
+  icons: {
+    icon: [{ url: "/icon.png", type: "image/png" }],
+    apple: [{ url: "/apple-icon.png", type: "image/png" }],
+  },
   appleWebApp: {
     capable: true,
     title: "GhostDeal",
