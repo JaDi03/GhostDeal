@@ -14,10 +14,11 @@ import {
   poolAddressForIndex,
   poolFeeAmount,
   priceToWei,
-  shieldedBalance,
+  readShieldedBalance,
   shieldTokens,
   unshieldTokens,
 } from "@/lib/escrow";
+import { friendlyPrivateError, isPrivateTokensOffError, privateErrorText } from "@/lib/privateWalletError";
 
 export default function AccountPage() {
   const isConnected = useStoreWallet((s) => s.isConnected);
@@ -71,9 +72,14 @@ export default function AccountPage() {
     setError("");
     setReading(true);
     try {
-      const value = await shieldedBalance(account, addrSTRK);
+      const value = await readShieldedBalance(account, addrSTRK);
       setBalance(value);
-      setBalanceFailed(value === null);
+      setBalanceFailed(false);
+    } catch (err: unknown) {
+      console.warn("[strk20] shieldedBalance failed:", err);
+      setBalance(null);
+      setBalanceFailed(true);
+      setError(friendlyPrivateError(err, "Could not read shielded balance."));
     } finally {
       setReading(false);
     }
@@ -108,12 +114,14 @@ export default function AccountPage() {
       await shieldTokens({ account, token: addrSTRK, amountWei });
       setNote("Shielded. Tap Refresh balance to see it.");
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Shield failed.";
-      setError(
-        /timed out|stopped responding/i.test(message)
-          ? "The wallet timed out. The shield can still land; tap Refresh balance in a bit."
-          : message,
-      );
+      console.error("[GhostDeal] shield failed:", err);
+      if (isPrivateTokensOffError(err)) {
+        setError(friendlyPrivateError(err, "Shield failed."));
+      } else if (/timed out|stopped responding/i.test(privateErrorText(err))) {
+        setError("The wallet timed out. The shield can still land; tap Refresh balance in a bit.");
+      } else {
+        setError(friendlyPrivateError(err, "Shield failed."));
+      }
     } finally {
       setBusy(false);
     }
@@ -133,18 +141,19 @@ export default function AccountPage() {
       const hash = await unshieldTokens({ account, token: addrSTRK, amountWei });
       setNote(`Unshielded minus the pool fee. Tx ${hash}`);
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Unshield failed.";
-      setError(
-        /timed out|stopped responding/i.test(message)
-          ? "The wallet timed out. The unshield can still land; check your public balance in a bit."
-          : message,
-      );
+      console.error("[GhostDeal] unshield failed:", err);
+      if (isPrivateTokensOffError(err)) {
+        setError(friendlyPrivateError(err, "Unshield failed."));
+      } else if (/timed out|stopped responding/i.test(privateErrorText(err))) {
+        setError("The wallet timed out. The unshield can still land; check your public balance in a bit.");
+      } else {
+        setError(friendlyPrivateError(err, "Unshield failed."));
+      }
     } finally {
       setBusy(false);
     }
   }
 
-  const shortAddress = address ? `${address.slice(0, 6)}…${address.slice(-4)}` : "";
   const readyToBuy = balance !== null && balance > 0n;
 
   return (
@@ -203,7 +212,6 @@ export default function AccountPage() {
           "Shielded balance not read yet."
         )}
       </div>
-      {balanceFailed ? <p className="gdMeta">The wallet approved the read but its balance service failed. Try again later.</p> : null}
       <button
         type="button"
         className="gdBtn gdBtnGhost"
@@ -213,8 +221,13 @@ export default function AccountPage() {
       >
         {reading ? "Reading…" : balance === null ? "Show shielded balance" : "Refresh balance"}
       </button>
+      {error ? (
+        <p className="gdAlert" role="alert">
+          {error}
+        </p>
+      ) : null}
       <p className="gdMeta" style={{ marginTop: 10 }}>
-        {shortAddress} · {network} · Escrow {escrowReady ? "deployed" : "not deployed"}
+        {network} · Escrow {escrowReady ? "deployed" : "not deployed"}
       </p>
 
       <form
@@ -245,10 +258,9 @@ export default function AccountPage() {
       <p className="gdMeta">
         The wallet asks twice (approve, then move).
         {fee !== null ? ` Pool fee: ${formatWei(fee)} STRK per private operation, deducted from the amount (shield or unshield).` : ""}{" "}
-        Unshield is a public withdraw to this address; spread withdrawals over time to break timing linkage.
+        Unshield is a public withdraw. Spread withdrawals over time to break timing linkage.
       </p>
 
-      {error ? <p className="gdMeta">{error}</p> : null}
       {note ? <p className="gdMeta">{note}</p> : null}
 
       <h2 className="gdCardTitle" style={{ marginTop: 22 }}>

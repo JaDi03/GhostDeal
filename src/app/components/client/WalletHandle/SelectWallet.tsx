@@ -74,6 +74,8 @@ export default function SelectWallet({ variant = "ctaBig" }: { variant?: "nav" |
   const [connecting, setConnecting] = useState(false);
   const [error, setError] = useState<string>("");
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [addrOpen, setAddrOpen] = useState(false);
+  const [addrCopied, setAddrCopied] = useState(false);
   // Detected Starknet wallets, in render state so the picker updates as wallets register.
   const [wallets, setWallets] = useState<WalletWithStarknetFeatures[]>([]);
   const storeRef = useRef<Store | null>(null);
@@ -112,7 +114,6 @@ export default function SelectWallet({ variant = "ctaBig" }: { variant?: "nav" |
       console.log("This Wallet is not compatible.");
       return;
     }
-    console.log("Current account addr =", result);
     if (Array.isArray(result)) {
       const addr = validateAndParseAddress(result[0]);
       setAddressAccount(addr); // zustand
@@ -212,8 +213,6 @@ export default function SelectWallet({ variant = "ctaBig" }: { variant?: "nav" |
     }
   }
 
-  const shortAddr = address ? `${address.slice(0, 6)}…${address.slice(-4)}` : "";
-
   const picker = pickerOpen ? (
     <div className={`${styles.modalOverlay} gdPickerOverlay`} onClick={() => !connecting && setPickerOpen(false)}>
       <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
@@ -258,19 +257,75 @@ export default function SelectWallet({ variant = "ctaBig" }: { variant?: "nav" |
     </div>
   ) : null;
 
-  // Nav variant: a compact Connect pill, or the connected address with disconnect.
+  // Nav variant: Connect, or Disconnect plus an eye to reveal/copy the address.
   if (variant === "nav") {
-    if (isConnected && address) {
+    if (isConnected) {
       return (
-        <button
-          className={styles.addrPill}
-          onClick={() => setConnected(false)}
-          title="Disconnect"
-        >
-          <span className={styles.addrDot} />
-          {shortAddr}
-          <span className={styles.addrDisconnect}>Disconnect</span>
-        </button>
+        <div className="gdSession">
+          <div className={styles.addrPill}>
+            <span className={styles.addrDot} />
+            <button
+              type="button"
+              className={styles.addrDisconnect}
+              onClick={() => {
+                setAddrOpen(false);
+                setConnected(false);
+              }}
+            >
+              Disconnect
+            </button>
+            {address ? (
+              <button
+                type="button"
+                className={styles.addrIcon}
+                aria-label={addrOpen ? "Hide address" : "Show address"}
+                title={addrOpen ? "Hide address" : "Show address"}
+                onClick={() => setAddrOpen((open) => !open)}
+              >
+                {addrOpen ? (
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M3 3l18 18" />
+                    <path d="M10.6 10.6A2 2 0 0 0 12 14a2 2 0 0 0 1.4-.6" />
+                    <path d="M9.9 5.1A10.8 10.8 0 0 1 12 5c6.5 0 10 7 10 7a16.9 16.9 0 0 1-3.2 4.4" />
+                    <path d="M6.1 6.1A16.8 16.8 0 0 0 2 12s3.5 7 10 7a10.4 10.4 0 0 0 4.2-.9" />
+                  </svg>
+                ) : (
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z" />
+                    <circle cx="12" cy="12" r="3" />
+                  </svg>
+                )}
+              </button>
+            ) : null}
+            {addrOpen && address ? (
+              <button
+                type="button"
+                className={styles.addrIcon}
+                aria-label={addrCopied ? "Address copied" : "Copy address"}
+                title={addrCopied ? "Copied" : "Copy address"}
+                onClick={async () => {
+                  await navigator.clipboard.writeText(address);
+                  setAddrCopied(true);
+                  setTimeout(() => setAddrCopied(false), 2000);
+                }}
+              >
+                {addrCopied ? (
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M5 12l5 5L20 7" />
+                  </svg>
+                ) : (
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <rect x="8" y="8" width="12" height="12" rx="2" />
+                    <rect x="4" y="4" width="12" height="12" rx="2" />
+                  </svg>
+                )}
+              </button>
+            ) : null}
+          </div>
+          {addrOpen && address ? (
+            <span className="gdAddrReveal">{address}</span>
+          ) : null}
+        </div>
       );
     }
     return (

@@ -62,13 +62,21 @@
   top: 0;
   z-index: 40;
   display: flex;
+  flex-direction: row;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   padding: calc(10px + env(safe-area-inset-top, 0px)) 16px 10px;
   background: color-mix(in srgb, var(--gd-bg) 88%, transparent);
   border-bottom: 1px solid var(--gd-line);
   overflow: visible;
-  flex-wrap: wrap;
+}
+
+.gdHeaderLead {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
 }
 
 .gdBrand {
@@ -80,7 +88,6 @@
   text-transform: uppercase;
   font-size: 15px;
   color: var(--gd-text);
-  margin-right: auto;
   white-space: nowrap;
 }
 
@@ -104,6 +111,7 @@
 .gdWallet {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 8px;
   flex-shrink: 0;
 }
@@ -113,35 +121,25 @@
 }
 
 .gdNet {
-  display: flex;
-  align-items: stretch;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   height: 44px;
+  padding: 0 14px;
   border: 1px solid var(--gd-line);
   border-radius: 999px;
-  overflow: hidden;
   background: var(--gd-raised);
-  flex-shrink: 0;
-}
-
-.gdNetBtn {
-  border: none;
-  background: transparent;
-  color: var(--gd-dim);
-  padding: 0 10px;
+  color: var(--gd-text);
   font: inherit;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
   letter-spacing: 0.02em;
   cursor: pointer;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
-.gdNetBtnOn {
-  background: var(--gd-cta);
-  color: var(--gd-cta-ink);
-}
-
-.gdNetBtn:disabled {
+.gdNet:disabled {
   cursor: default;
   opacity: 1;
 }
@@ -298,6 +296,41 @@
   margin-top: 6px;
   color: var(--gd-faint);
   font-size: 13px;
+}
+
+.gdAlert {
+  margin: 10px 0;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--gd-orange);
+  background: rgba(197, 52, 0, 0.16);
+  color: var(--gd-text);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.gdAddrReveal {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  z-index: 50;
+  width: min(280px, calc(100vw - 32px));
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--gd-raised);
+  border: 1px solid var(--gd-line);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  font-family: var(--font-mono-ui), monospace;
+  font-size: 12px;
+  color: var(--gd-text);
+  word-break: break-all;
+}
+
+.gdSession {
+  position: relative;
+  flex-shrink: 0;
 }
 
 .gdBottom {
