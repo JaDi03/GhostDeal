@@ -40,8 +40,6 @@ The bar from the rules: it runs, on mainnet, for a real user.
 | Demo video | Not yet. `demo_video` is a required `strk20.json` field (3 minutes) |
 | Live demo URL | Not yet. `strk20.json` `demo_url` is empty |
 
-Do not list `contracts` in `strk20.json` without mainnet txs from those contracts.
-
 ## 25% Innovation
 
 What the ecosystem does not have yet, or a materially better take.
@@ -64,7 +62,3 @@ Most private-DeFi demos are swaps, lending, or "hide a transfer." GhostDeal is a
 | Docs a judge can explain in five minutes | This MkDocs site |
 | Code someone can build on | `cairo/` helper + `src/lib/escrow.ts` |
 | License | MIT. [LICENSE](https://github.com/JaDi03/GhostDeal/blob/main/LICENSE) includes starter kit copyright (Philippe ROSTAN, 2023) and GhostDeal (JaDi03, 2026) |
-
-The helper and the escrow helpers in `src/lib/escrow.ts` are self-contained and copyable into any Wallet API dapp. The rules say: if another team depends on something you published, that counts in your favour.
-
-Preview docs locally with `pip install -r requirements-docs.txt` and `mkdocs serve`.
