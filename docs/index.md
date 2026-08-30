@@ -12,7 +12,7 @@ STRK20 already powers private swaps, lending, and transfers. Day-to-day buying w
 
 Meet someone, agree on a price, take the item home. Cash works like that. Public crypto usually does not: one payment can put your whole wallet on display for a stranger on an explorer. That is fine for a trader. It is not fine when you are buying a used bike from a neighbor.
 
-GhostDeal is the everyday layer on top: a local marketplace where paying feels normal and the counterparty only sees that the price was paid, not what you still hold. No DEX UI. No mixer story. No merchant checkout.
+GhostDeal is the everyday layer on top: a local marketplace where paying feels normal and the counterparty only sees that the price was paid, not what you still hold.
 
 ## The idea in one picture
 

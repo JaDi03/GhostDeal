@@ -46,6 +46,11 @@ You found a listing nearby. You agree on a price in USDC. You do not want the se
 
 </div>
 
+1. **List.** The seller creates the listing on their phone. The app shows a claim secret once, like a backup phrase. The listing carries the price (USDC or STRK) and a hash of that secret. No transaction yet.
+2. **Pay.** The buyer opens the listing (QR or link), connects Ready, and pays the price from shielded funds. Funds lock in the GhostDeal escrow. The seller sees that it is paid, not who paid from which notes.
+3. **Meet.** The item changes hands in person.
+4. **Cash out.** The seller claims with the secret kept on their phone (or pasted from backup). The price lands as a private note. If the deal falls through, the buyer cancels with the refund secret saved at pay time and the listing can reopen.
+
 <div class="gd-diagram-chain" markdown="1">
 
 ##### What the chain does
@@ -81,14 +86,14 @@ sequenceDiagram
   alt Seller cash out
     Seller->>App: Cash out
     App->>Wallet: strk20InvokeTransaction
-    Wallet->>Pool: transfer OPEN + invoke Claim
+    Wallet->>Pool: transfer OPEN (whole open note) + invoke Claim
     Pool->>Escrow: privacy_invoke(Claim)
     Escrow-->>Pool: OpenNoteDeposit
     Note over Pool: credits seller open note, receiver hidden
   else Buyer cancel
     Buyer->>App: Cancel
     App->>Wallet: strk20InvokeTransaction
-    Wallet->>Pool: transfer OPEN + invoke Cancel
+    Wallet->>Pool: transfer OPEN (whole open note) + invoke Cancel
     Pool->>Escrow: privacy_invoke(Cancel)
     Escrow-->>Pool: OpenNoteDeposit
     Note over Pool: credits buyer open note, receiver hidden
@@ -96,11 +101,6 @@ sequenceDiagram
 ```
 
 </div>
-
-1. **List.** The seller creates the listing on their phone. The app shows a claim secret once, like a backup phrase. The listing carries the price (USDC or STRK) and a hash of that secret. No transaction yet.
-2. **Pay.** The buyer opens the listing (QR or link), connects Ready, and pays the price from shielded funds. Funds lock in the GhostDeal escrow. The seller sees that it is paid, not who paid from which notes.
-3. **Meet.** The item changes hands in person.
-4. **Cash out.** The seller claims with the secret kept on their phone (or pasted from backup). The price lands as a private note. If the deal falls through, the buyer cancels with the refund secret saved at pay time and the listing can reopen.
 
 Shield is public on purpose. The chain sees that someone deposited an amount. After that, Pay and cash-out run as private pool transactions. Observers see the pool move the price into escrow, not which notes were spent or who paid.
 
