@@ -50,7 +50,7 @@ yarn install
 cp .env.example .env.local
 ```
 
-Put your [Alchemy](https://www.alchemy.com) Starknet API key in `NEXT_PUBLIC_PROVIDER_URL`. Helper addresses default to `0x0` until you deploy `cairo/` and paste them. Never commit `.env.local`.
+Put your [Alchemy](https://www.alchemy.com) Starknet API key in `NEXT_PUBLIC_PROVIDER_URL`. Mainnet helper is already in `.env.example`. Sepolia is `0x0` (not wired). For a public marketplace set `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN`. Never commit `.env.local`.
 
 ```bash
 yarn dev
@@ -71,7 +71,7 @@ python -m venv .venv
 .\.venv\Scripts\mkdocs serve
 ```
 
-Then http://127.0.0.1:8000. Start at the [MkDocs home](docs/index.md). Do not push until the copy feels right.
+Then http://127.0.0.1:8000. Start at the [MkDocs home](docs/index.md).
 
 ## Reuse
 

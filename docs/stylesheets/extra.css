@@ -33,6 +33,17 @@
   --md-typeset-mark-color: rgba(197, 52, 0, 0.22);
 }
 
+/* Material renders superfences mermaid into a closed shadow root. Page
+   selectors cannot cross that boundary, but custom properties inherit through
+   it, so the shadow's var(--md-mermaid-*) rules resolve to our tokens. */
+:root,
+[data-md-color-scheme="slate"] {
+  --md-mermaid-node-fg-color: var(--gd-raised2);
+  --md-mermaid-label-fg-color: var(--gd-text);
+  --md-mermaid-edge-color: var(--gd-orange);
+  --md-mermaid-sequence-box-fg-color: var(--gd-text);
+}
+
 [data-md-color-scheme="default"] {
   --gd-bg: #f6f3ee;
   --gd-raised: #ffffff;
@@ -317,6 +328,12 @@ body {
   overflow-x: auto;
 }
 
+/* Hide raw mermaid source until the diagram is rendered as SVG. */
+pre.mermaid,
+.mermaid:not(:has(svg)) {
+  visibility: hidden;
+}
+
 /* Mermaid paints inline fills. Override so light/dark both stay readable. */
 .md-typeset .mermaid .actor,
 .md-typeset .mermaid .actor-man,
@@ -356,7 +373,13 @@ body {
 .md-typeset .mermaid .labelText,
 .md-typeset .mermaid .sectionTitle,
 .md-typeset .mermaid .nodeLabel,
+.md-typeset .mermaid .nodeLabel tspan,
+.md-typeset .mermaid .cluster-label,
+.md-typeset .mermaid .cluster-label tspan,
+.md-typeset .mermaid .cluster-label span,
 .md-typeset .mermaid .edgeLabel,
+.md-typeset .mermaid .edgeLabel tspan,
+.md-typeset .mermaid .edgeLabel span,
 .md-typeset .mermaid .label,
 .md-typeset .mermaid .node .label,
 .md-typeset .mermaid .node span,
@@ -393,6 +416,7 @@ body {
 
 .md-typeset .mermaid .node rect,
 .md-typeset .mermaid .node polygon,
+.md-typeset .mermaid .cluster rect,
 .md-typeset .mermaid .statediagram-state rect {
   fill: var(--gd-raised2) !important;
   stroke: var(--gd-line) !important;

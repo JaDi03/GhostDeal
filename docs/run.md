@@ -12,10 +12,10 @@ Fill `.env.local` from [`.env.example`](https://github.com/JaDi03/GhostDeal/blob
 | Variable | Role |
 | --- | --- |
 | `NEXT_PUBLIC_PROVIDER_URL` | Alchemy Starknet API key only (the URL prefix is already in `src/utils/constants.ts`) |
-| `NEXT_PUBLIC_GHOSTDEAL_ESCROW_MAINNET` | Helper address, or `0x0` |
-| `NEXT_PUBLIC_GHOSTDEAL_ESCROW_SEPOLIA` | Helper address, or `0x0` |
+| `NEXT_PUBLIC_GHOSTDEAL_ESCROW_MAINNET` | Mainnet helper. `.env.example` ships the 2026-08-28 deploy |
+| `NEXT_PUBLIC_GHOSTDEAL_ESCROW_SEPOLIA` | `0x0` = Sepolia not wired |
 | `NEXT_PUBLIC_WC_PROJECT_ID` | Optional Reown id for ReadyConnector |
-| `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` | Shared listings. Without them, the app is local-only plus demo seeds |
+| `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` | Required for a public marketplace. Without them, listings stay in this browser and the UI says marketplace storage is off |
 
 ```bash
 yarn dev

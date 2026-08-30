@@ -65,8 +65,9 @@ sequenceDiagram
   Note over App: listing = price + claimHash
 
   Note over Buyer,Pool: Shield (public by design)
-  Buyer->>Wallet: deposit funds into the pool
-  Wallet->>Pool: public deposit, pool fee deducted
+  Buyer->>App: Shield
+  App->>Wallet: strk20InvokeTransaction
+  Wallet->>Pool: deposit, pool fee deducted
 
   Note over Buyer,Escrow: Pay (private)
   Buyer->>App: Pay
@@ -78,21 +79,25 @@ sequenceDiagram
   Note over Seller,Buyer: In person: item changes hands
 
   alt Seller cash out
-    Seller->>Wallet: claim with claimSecret
-    Wallet->>Pool: open note + invoke Claim
+    Seller->>App: Cash out
+    App->>Wallet: strk20InvokeTransaction
+    Wallet->>Pool: transfer OPEN + invoke Claim
     Pool->>Escrow: privacy_invoke(Claim)
-    Escrow-->>Seller: private note
+    Escrow-->>Pool: OpenNoteDeposit
+    Note over Pool: credits seller open note, receiver hidden
   else Buyer cancel
-    Buyer->>Wallet: cancel with refundSecret
-    Wallet->>Pool: open note + invoke Cancel
+    Buyer->>App: Cancel
+    App->>Wallet: strk20InvokeTransaction
+    Wallet->>Pool: transfer OPEN + invoke Cancel
     Pool->>Escrow: privacy_invoke(Cancel)
-    Escrow-->>Buyer: private note back
+    Escrow-->>Pool: OpenNoteDeposit
+    Note over Pool: credits buyer open note, receiver hidden
   end
 ```
 
 </div>
 
-1. **List.** The seller creates the listing on their phone. The app shows a claim secret once, like a backup phrase. The listing carries the price (in USDC) and a hash of that secret. No transaction yet.
+1. **List.** The seller creates the listing on their phone. The app shows a claim secret once, like a backup phrase. The listing carries the price (USDC or STRK) and a hash of that secret. No transaction yet.
 2. **Pay.** The buyer opens the listing (QR or link), connects Ready, and pays the price from shielded funds. Funds lock in the GhostDeal escrow. The seller sees that it is paid, not who paid from which notes.
 3. **Meet.** The item changes hands in person.
 4. **Cash out.** The seller claims with the secret kept on their phone (or pasted from backup). The price lands as a private note. If the deal falls through, the buyer cancels with the refund secret saved at pay time and the listing can reopen.
@@ -109,7 +114,9 @@ flowchart TD
   E -->|Buyer cancel with refundSecret| X["3b. Cancelled (Buyer refunded)"]
 ```
 
-On chain, a commitment is either open or `closed`. Claim and cancel both close it. There is no separate "release" function on the helper: the seller already holds the claim secret from list time. The app can still show Release as a step before cash-out.
+On chain, a commitment is either open or `closed`. Claim and cancel both close it. There is no separate "release" function on the helper: the seller already holds the claim secret from list time.
+
+The marketplace catalog (when Upstash is on) tracks `open` / `locked` / `released` so another phone sees the same deal state after Pay or cash out.
 
 ## Who touches what
 

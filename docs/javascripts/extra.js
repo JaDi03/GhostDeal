@@ -1,3 +1,14 @@
+// GhostDeal Mermaid theming.
+// Material renders superfences mermaid into a CLOSED shadow root that page CSS
+// and querySelector cannot reach, and it renders once with the colors baked at
+// load time. We therefore (a) capture every fence source before Material swaps
+// the <pre> out, (b) re-render the diagrams ourselves as plain inline SVGs, and
+// (c) recolor through CSS variables so nothing is ever baked per theme.
+
+function gdSchemeIsDark() {
+  return document.body.getAttribute("data-md-color-scheme") === "slate";
+}
+
 function gdMermaidVars(dark) {
   const text = dark ? "#fafafa" : "#14110e";
   const raised = dark ? "#141414" : "#ffffff";
@@ -46,18 +57,72 @@ function gdMermaidVars(dark) {
   };
 }
 
-function gdSchemeIsDark() {
-  return document.body.getAttribute("data-md-color-scheme") === "slate";
+function gdTextSelectorList() {
+  return [
+    ".messageText",
+    ".messageText > tspan",
+    "text.messageText",
+    ".noteText",
+    ".noteText > tspan",
+    ".loopText",
+    ".loopText > tspan",
+    ".labelText",
+    ".labelText > tspan",
+    ".sectionTitle",
+    "text.actor",
+    "text.actor > tspan",
+    ".nodeLabel",
+    ".nodeLabel > tspan",
+    ".node .label",
+    ".node span",
+    ".node foreignObject",
+    ".node foreignObject div",
+    ".node foreignObject span",
+    ".label foreignObject div",
+    ".cluster-label",
+    ".cluster-label > tspan",
+    ".cluster-label span",
+    ".cluster-label foreignObject",
+    ".cluster-label foreignObject div",
+    ".cluster-label foreignObject span",
+    ".edgeLabel",
+    ".edgeLabel > tspan",
+    ".edgeLabel span",
+    ".edgeLabel foreignObject",
+    ".edgeLabel foreignObject div",
+    ".edgeLabel foreignObject span",
+    ".nodeText",
+    ".nodeText > tspan",
+    "text",
+  ];
+}
+
+function gdSvgStyleRules(prefix) {
+  var p = prefix || "";
+  var withP = function (sel) {
+    return sel
+      .split(",")
+      .map(function (s) {
+        return p + s.trim();
+      })
+      .join(",");
+  };
+  return [
+    withP(
+      ".actor, rect.actor, .note, rect.note, .labelBox, rect.labelBox, .activation0, .activation1, .activation2, .node rect, .node polygon, .node circle, .cluster rect"
+    ) + " { fill: var(--gd-raised2) !important; }",
+    withP(".actor, rect.actor, .node rect, .node polygon, .node circle, .cluster rect") +
+      " { stroke: var(--gd-line) !important; }",
+    withP(".note, rect.note, .labelBox, rect.labelBox") +
+      " { stroke: var(--gd-orange) !important; }",
+    withP(gdTextSelectorList().join(", ")) +
+      " { fill: var(--gd-text) !important; color: var(--gd-text) !important; stroke: none !important; }",
+    withP(".sequenceNumber") + " { fill: #fafafa !important; stroke: none !important; }",
+  ].join(" ");
 }
 
 function gdMermaidThemeCSS() {
-  return [
-    ".actor,rect.actor,.note,rect.note,.labelBox,rect.labelBox,.activation0,.activation1,.activation2,.node rect,.node polygon { fill: var(--gd-raised2) !important; }",
-    ".actor,rect.actor,.node rect,.node polygon { stroke: var(--gd-line) !important; }",
-    ".note,rect.note,.labelBox,rect.labelBox,.activation0,.activation1,.activation2 { stroke: var(--gd-orange) !important; }",
-    ".messageText,.messageText>tspan,.noteText,.noteText>tspan,.loopText,.loopText>tspan,.labelText,.labelText>tspan,.sectionTitle,.sectionTitle>tspan,text.actor>tspan,text.actor,.nodeLabel,.node .label,.node span,.label foreignObject,.label foreignObject div,.label foreignObject span { fill: var(--gd-text) !important; color: var(--gd-text) !important; stroke: none !important; }",
-    ".sequenceNumber { fill: #fafafa !important; stroke: none !important; }",
-  ].join(" ");
+  return gdSvgStyleRules("");
 }
 
 function gdApplyMermaidTextTheme() {
@@ -69,95 +134,46 @@ function gdApplyMermaidTextTheme() {
       svg.appendChild(style);
     }
     var id = svg.id ? "#" + svg.id.replace(/([^a-zA-Z0-9_-])/g, "\\$1") : "";
-    var p = id ? id + " " : "";
-    style.textContent =
-      p +
-      ".actor," +
-      p +
-      "rect.actor," +
-      p +
-      ".note," +
-      p +
-      "rect.note," +
-      p +
-      ".labelBox," +
-      p +
-      "rect.labelBox," +
-      p +
-      ".activation0," +
-      p +
-      ".activation1," +
-      p +
-      ".activation2," +
-      p +
-      ".node rect," +
-      p +
-      ".node polygon { fill: var(--gd-raised2) !important; }" +
-      p +
-      ".actor," +
-      p +
-      "rect.actor," +
-      p +
-      ".node rect," +
-      p +
-      ".node polygon { stroke: var(--gd-line) !important; }" +
-      p +
-      ".note," +
-      p +
-      "rect.note," +
-      p +
-      ".labelBox," +
-      p +
-      "rect.labelBox { stroke: var(--gd-orange) !important; }" +
-      p +
-      ".messageText," +
-      p +
-      ".messageText > tspan," +
-      p +
-      "text.messageText," +
-      p +
-      ".noteText," +
-      p +
-      ".noteText > tspan," +
-      p +
-      ".loopText," +
-      p +
-      ".loopText > tspan," +
-      p +
-      ".labelText," +
-      p +
-      ".labelText > tspan," +
-      p +
-      ".sectionTitle," +
-      p +
-      "text.actor," +
-      p +
-      "text.actor > tspan," +
-      p +
-      ".nodeLabel," +
-      p +
-      ".node .label," +
-      p +
-      ".node span," +
-      p +
-      ".node foreignObject," +
-      p +
-      ".node foreignObject div," +
-      p +
-      ".node foreignObject span," +
-      p +
-      ".label foreignObject div { fill: var(--gd-text) !important; color: var(--gd-text) !important; stroke: none !important; }" +
-      p +
-      ".sequenceNumber { fill: #fafafa !important; stroke: none !important; }";
+    style.textContent = gdSvgStyleRules(id ? id + " " : "");
+    // Never bake a literal color here: the CSS variables above must stay the
+    // single source of truth so a scheme switch needs no re-render.
   });
 }
 
+// Sources must be grabbed before Material replaces <pre class="mermaid"> with
+// its closed-shadow-root div. Keyed per path + diagram index.
+var gdSrcCache = Object.create(null);
+
 function gdCaptureMermaidSources() {
-  document.querySelectorAll("pre.mermaid, .mermaid").forEach(function (el) {
-    if (el.dataset.gdSrc) return;
-    var svg = el.querySelector("svg");
-    if (svg) return;
-    el.dataset.gdSrc = (el.textContent || "").trim();
+  var pres = document.querySelectorAll("pre.mermaid");
+  for (var i = 0; i < pres.length; i++) {
+    var src = (pres[i].textContent || "").trim();
+    if (src) gdSrcCache[location.pathname + ":" + i] = src;
+  }
+  var blocks = document.querySelectorAll(".mermaid");
+  for (var j = 0; j < blocks.length; j++) {
+    var el = blocks[j];
+    if (el.dataset.gdSrc) {
+      gdSrcCache[location.pathname + ":" + j] = el.dataset.gdSrc;
+      continue;
+    }
+    var code = el.querySelector("code");
+    var text = code ? code.textContent : el.textContent;
+    if (text && text.trim()) {
+      el.dataset.gdSrc = text.trim();
+      gdSrcCache[location.pathname + ":" + j] = text.trim();
+    }
+  }
+}
+
+var gdRenderPending = false;
+
+function gdScheduleRender() {
+  if (gdRenderPending) return;
+  gdRenderPending = true;
+  requestAnimationFrame(function () {
+    gdRenderPending = false;
+    gdRenderMermaid();
   });
 }
 
@@ -173,21 +189,26 @@ async function gdRenderMermaid() {
     themeVariables: gdMermaidVars(gdSchemeIsDark()),
   });
   var nodes = [];
-  document.querySelectorAll("pre.mermaid, .mermaid").forEach(function (el) {
-    if (!el.dataset.gdSrc) return;
-    el.removeAttribute("data-processed");
-    el.textContent = el.dataset.gdSrc;
-    nodes.push(el);
+  document.querySelectorAll(".mermaid").forEach(function (el, i) {
+    var src = el.dataset.gdSrc || gdSrcCache[location.pathname + ":" + i] || "";
+    if (!src) return; // Material's closed-shadow div: nothing we can inject.
+    if (!el.querySelector("svg") || el.getAttribute("data-gd-stale") === "1") {
+      // Always render into a fresh div and replace the existing node: when the
+      // node is the original <pre>, Material's later replacement of that (now
+      // detached) pre can no longer swallow our rendered SVG.
+      var host = document.createElement("div");
+      host.className = el.className || "mermaid";
+      host.dataset.gdSrc = src;
+      host.textContent = src;
+      el.replaceWith(host);
+      nodes.push(host);
+    }
   });
-  if (!nodes.length) {
-    gdApplyMermaidTextTheme();
-    return;
+  if (nodes.length) {
+    await mermaid.run({ nodes: nodes });
   }
-  await mermaid.run({ nodes: nodes });
   gdApplyMermaidTextTheme();
 }
-
-var gdWatchingScheme = false;
 
 if (typeof mermaid !== "undefined") {
   mermaid.initialize({
@@ -199,6 +220,17 @@ if (typeof mermaid !== "undefined") {
   });
 }
 
+// Grab fence sources as early as this script evaluates (defer: DOM is parsed,
+// Material has not swapped the <pre> yet), and keep grabbing on every DOM
+// change so navigation.instant pages are covered too.
+gdCaptureMermaidSources();
+new MutationObserver(gdCaptureMermaidSources).observe(document.documentElement, {
+  childList: true,
+  subtree: true,
+});
+
+var gdWatchingScheme = false;
+
 document$.subscribe(function () {
   gdRenderMermaid();
   requestAnimationFrame(function () {
@@ -208,7 +240,12 @@ document$.subscribe(function () {
   if (gdWatchingScheme) return;
   gdWatchingScheme = true;
   new MutationObserver(function () {
-    gdRenderMermaid();
+    // Mark our own nodes stale so the scheme switch forces a re-render with
+    // the new themeVariables.
+    document.querySelectorAll(".mermaid[data-gd-src]").forEach(function (el) {
+      el.setAttribute("data-gd-stale", "1");
+    });
+    gdScheduleRender();
   }).observe(document.body, {
     attributes: true,
     attributeFilter: ["data-md-color-scheme"],

@@ -46,15 +46,19 @@ The helper has no admin key, no upgrade, and no owner functions. Only the pool p
 
 ## Token Roles & Economics
 
-GhostDeal separates the listing asset from the gas asset to solve the practical friction of in-person commerce:
+Listings can be priced in USDC or STRK. Pool fees are always STRK.
 
 | Token | Primary Role | Rationale |
 | --- | --- | --- |
-| **USDC** | Listing denomination & escrow settlement | **Price stability**: Prevents price slippage or cancelled sales due to volatility between listing creation, transit, and in-person meetup. Buyers and sellers agree on a predictable real-world value. |
-| **STRK** | Network execution & gas | **Native Starknet fuel**: Used to pay L2 execution fees and power STRK20 privacy interactions via Ready Wallet. |
+| **USDC** | Listing price (native Circle USDC, 6 decimals) | Price stability between listing and meetup. Pay on-chain supports it. |
+| **STRK** | Listing price or gas / pool fees | Native Starknet fuel. STRK listings pay in shielded STRK. USDC listings still need shielded STRK for the pool fee. |
 
-### Token-Agnostic Escrow
-The Cairo escrow helper (`cairo/src/lib.cairo`) is token-agnostic: it stores `token: ContractAddress` and `amount: u256` inside the deposit commitment. While USDC provides price stability for consumer goods, the contract logic seamlessly supports any asset enabled within the STRK20 privacy pool.
+### Token-agnostic escrow
+The Cairo helper (`cairo/src/lib.cairo`) stores `token: ContractAddress` and `amount: u256`. Pay in this dapp supports STRK and native Circle USDC only (`src/lib/escrow.ts`). Addresses live in `src/utils/constants.ts`.
+
+## Shared listings
+
+Listings are off-chain. With `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN`, the catalog is shared across phones (`src/lib/marketplaceRedis.ts`). Pay, cash out, and cancel patch status: `open`, `locked`, or `released`. Without those env vars, listings stay in this browser.
 
 ## What we deliberately do not use
 
@@ -71,6 +75,7 @@ Do not copy addresses from memory. Read `src/utils/constants.ts`.
 
 - STRK20 pool Mainnet: `0x040337b1af3c663e86e333bab5a4b28da8d4652a15a69beee2b677776ffe812a`
 - STRK20 pool Sepolia: `0x0254a6b2997ef52e9f830ce1f543f6b29768295e8d17e2267d672c552cfe0d91`
-- GhostDeal helper: `NEXT_PUBLIC_GHOSTDEAL_ESCROW_MAINNET` / `_SEPOLIA`. `0x0` means that network is not wired yet.
+- GhostDeal helper Mainnet: `0x1ad47d7b59f736383221af3847aeb737d358e0c2cce947482ca48dad6c4ca72` (fallback in `src/utils/constants.ts`, same value in `.env.example`)
+- GhostDeal helper Sepolia: `0x0` (not wired)
 
-The pool is live on mainnet. The helper address is filled after deploy. A "working mainnet product" claim is only true once that mainnet helper is set, the PWA points at it, and real users can Pay without a login wall.
+The pool and the helper are live on mainnet. The judged public URL is still missing: `strk20.json` `demo_url` is empty, and `https://ghostdeal.vercel.app` returns 404.

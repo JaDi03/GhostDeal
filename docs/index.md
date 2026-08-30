@@ -4,7 +4,7 @@
 
 GhostDeal is a mobile PWA for in-person sales on Starknet. A seller lists an item in USDC and shares a QR. A buyer pays that price into private escrow. After the item changes hands, the seller cashes out into a private note.
 
-![GhostDeal marketplace with local listings](assets/home-marketplace.png)
+![GhostDeal marketplace listings](assets/home-marketplace.png)
 
 ## What was missing
 
@@ -38,7 +38,7 @@ With cash, you hand over the amount. The seller is paid. They do not see how muc
 | | Paying from a public wallet | Paying with GhostDeal |
 | --- | --- | --- |
 | What the seller can see | Your wallet address and often your full payment history on an explorer | That the price was locked into escrow. No wallet address or balance shared. |
-| What you pay | The price, plus a public link to your wallet | The listing price, from shielded funds (USDC) |
+| What you pay | The price, plus a public link to your wallet | The listing price, from shielded funds (USDC or STRK) |
 | After the sale | That address can keep being watched on-chain | The rest of your shielded balance stays yours |
 
 ## Explore

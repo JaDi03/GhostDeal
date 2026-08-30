@@ -28,11 +28,11 @@ The bar: it runs, on mainnet, for a real user. Not a prototype behind a login.
 | --- | --- |
 | No login wall | The PWA is public. Guest can open a listing |
 | STRK20 pool on mainnet | Yes. Address in `src/utils/constants.ts` |
-| GhostDeal helper on mainnet | Only when `NEXT_PUBLIC_GHOSTDEAL_ESCROW_MAINNET` is not `0x0` and Pay lands on that contract |
-| Three txs that emit from **our** helper | Fill `strk20.json` `contracts` and `transactions` only with those txs |
-| Live demo URL | Fill `strk20.json` `demo_url` when the public deploy is the judged build |
+| GhostDeal helper on mainnet | Yes. `0x1ad47d7b59f736383221af3847aeb737d358e0c2cce947482ca48dad6c4ca72` in `src/utils/constants.ts` and `.env.example`. Sepolia is `0x0`. |
+| Three txs that emit from **our** helper | Not yet. `strk20.json` `contracts` and `transactions` are empty. Fill only with txs that emit from this helper. |
+| Live demo URL | Not yet. `strk20.json` `demo_url` is empty. `https://ghostdeal.vercel.app` returns 404 (checked 2026-08-29). |
 
-Until the mainnet helper is deployed and wired, call the live app what it is: a working PWA on the STRK20 pool, with escrow on the network that has a non-zero address. Do not list `contracts` in `strk20.json` without mainnet txs from those contracts.
+Do not list `contracts` in `strk20.json` without mainnet txs from those contracts.
 
 ## 25% Innovation
 
