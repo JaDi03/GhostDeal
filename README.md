@@ -69,4 +69,4 @@ Open http://localhost:3000. Desktop: Chrome + the Ready extension. Phone: open t
 
 ## Credits and license
 
-Judges: see the [scoring map](docs/judging.md). Built for the [STRK20 Private Sprint](https://strk20.starknet.io/hackathon). Bootstrapped from the official [STRK20 starter kit](https://github.com/Akashneelesh/strk20-starter-kit) (Philippe ROSTAN, 2023, MIT); the GhostDeal escrow, marketplace, and UI are original work (JaDi03, 2026). MIT, see [LICENSE](LICENSE).
+Built for the [STRK20 Private Sprint](https://strk20.starknet.io/hackathon). Bootstrapped from the official [STRK20 starter kit](https://github.com/Akashneelesh/strk20-starter-kit) (Philippe ROSTAN, 2023, MIT); the GhostDeal escrow, marketplace, and UI are original work (JaDi03, 2026). MIT, see [LICENSE](LICENSE).
