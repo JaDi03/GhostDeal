@@ -67,10 +67,6 @@ yarn dev
 
 Open http://localhost:3000. Desktop: Chrome + the Ready extension. Phone: open the PWA inside the Ready app.
 
-## Documentation
-
-Full guide on the MkDocs site: [how a deal works](docs/how-it-works.md), [what is private](docs/privacy.md), [architecture](docs/architecture.md), and [running it locally](docs/run.md). Judges: see the [scoring map](docs/judging.md).
-
 ## Credits and license
 
-Built for the [STRK20 Private Sprint](https://strk20.starknet.io/hackathon). Bootstrapped from the official [STRK20 starter kit](https://github.com/Akashneelesh/strk20-starter-kit) (Philippe ROSTAN, 2023, MIT); the GhostDeal escrow, marketplace, and UI are original work (JaDi03, 2026). MIT, see [LICENSE](LICENSE).
+Judges: see the [scoring map](docs/judging.md). Built for the [STRK20 Private Sprint](https://strk20.starknet.io/hackathon). Bootstrapped from the official [STRK20 starter kit](https://github.com/Akashneelesh/strk20-starter-kit) (Philippe ROSTAN, 2023, MIT); the GhostDeal escrow, marketplace, and UI are original work (JaDi03, 2026). MIT, see [LICENSE](LICENSE).
