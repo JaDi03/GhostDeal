@@ -17,12 +17,12 @@ yarn install
 cp .env.example .env.local
 ```
 
-Fill `.env.local`. Never commit it.
+Fill `.env.local`.
 
 | Variable | Role |
 | --- | --- |
 | `NEXT_PUBLIC_PROVIDER_URL` | Alchemy Starknet API key only (the URL prefix is already in `src/utils/constants.ts`) |
-| `NEXT_PUBLIC_GHOSTDEAL_ESCROW_MAINNET` | Mainnet helper. `.env.example` ships the 2026-08-28 deploy |
+| `NEXT_PUBLIC_GHOSTDEAL_ESCROW_MAINNET` | Mainnet helper address |
 | `NEXT_PUBLIC_GHOSTDEAL_ESCROW_SEPOLIA` | Sepolia helper address |
 | `NEXT_PUBLIC_WC_PROJECT_ID` | Optional Reown id for ReadyConnector |
 | `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` | Required for a public marketplace. Without them, listings stay in this browser |
