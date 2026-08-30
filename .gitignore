@@ -46,3 +46,7 @@ A1priv/A1priv.ts
 
 # cairo build artifacts
 /cairo/target/
+
+# MkDocs build output
+/site/
+.venv/

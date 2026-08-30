@@ -19,11 +19,13 @@ export const myFrontendProviders: ProviderInterface[] = [
 // Frontend provider indices where the STRK20 privacy pool is available.
 export const Strk20Networks: Record<number, string> = { 0: "MAINNET", 2: "SEPOLIA" };
 
-// GhostDeal escrow helper. Mainnet fallback is the 2026-08-28 deploy (public on-chain).
+// GhostDeal escrow helper. Fallbacks are the public on-chain deploys.
 export const GhostDealEscrowMainnet =
   process.env.NEXT_PUBLIC_GHOSTDEAL_ESCROW_MAINNET ??
   "0x1ad47d7b59f736383221af3847aeb737d358e0c2cce947482ca48dad6c4ca72";
-export const GhostDealEscrowSepolia = process.env.NEXT_PUBLIC_GHOSTDEAL_ESCROW_SEPOLIA ?? "0x0";
+export const GhostDealEscrowSepolia =
+  process.env.NEXT_PUBLIC_GHOSTDEAL_ESCROW_SEPOLIA ??
+  "0x2fe8c2bc2194ccdf899c0566057217a34e139c0c5e6f7931f2b24cb436a22cf";
 
 // STRK20 privacy pool per network. Sepolia verified on-chain; mainnet from the
 // README, verify at deploy time.

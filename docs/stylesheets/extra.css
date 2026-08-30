@@ -1,0 +1,463 @@
+/* GhostDeal docs theme. Tokens match src/app/ghostdeal.css */
+
+:root,
+[data-md-color-scheme="slate"] {
+  --gd-bg: #0d0d0d;
+  --gd-raised: #141414;
+  --gd-raised2: #1a1a1a;
+  --gd-line: #262626;
+  --gd-text: #fafafa;
+  --gd-dim: rgba(250, 250, 250, 0.65);
+  --gd-faint: #616161;
+  --gd-orange: #c53400;
+  --gd-orange-d: #a02a00;
+  --gd-cta: #fafafa;
+  --gd-cta-ink: #0d0d0d;
+  --gd-logo-ink: #fafafa;
+
+  --md-primary-fg-color: var(--gd-orange);
+  --md-primary-fg-color--light: #e85a2a;
+  --md-primary-fg-color--dark: var(--gd-orange-d);
+  --md-primary-bg-color: var(--gd-orange);
+  --md-accent-fg-color: var(--gd-orange);
+  --md-accent-bg-color: rgba(197, 52, 0, 0.18);
+  --md-default-bg-color: var(--gd-bg);
+  --md-default-fg-color: var(--gd-text);
+  --md-default-fg-color--light: var(--gd-dim);
+  --md-default-fg-color--lighter: var(--gd-faint);
+  --md-code-bg-color: var(--gd-raised2);
+  --md-code-fg-color: var(--gd-text);
+  --md-footer-bg-color: var(--gd-raised);
+  --md-footer-fg-color: var(--gd-faint);
+  --md-typeset-a-color: var(--gd-orange);
+  --md-typeset-mark-color: rgba(197, 52, 0, 0.22);
+}
+
+/* Material renders superfences mermaid into a closed shadow root. Page
+   selectors cannot cross that boundary, but custom properties inherit through
+   it, so the shadow's var(--md-mermaid-*) rules resolve to our tokens. */
+:root,
+[data-md-color-scheme="slate"] {
+  --md-mermaid-node-fg-color: var(--gd-raised2);
+  --md-mermaid-label-fg-color: var(--gd-text);
+  --md-mermaid-edge-color: var(--gd-orange);
+  --md-mermaid-sequence-box-fg-color: var(--gd-text);
+}
+
+[data-md-color-scheme="default"] {
+  --gd-bg: #f6f3ee;
+  --gd-raised: #ffffff;
+  --gd-raised2: #efeae3;
+  --gd-line: #e4ddd4;
+  --gd-text: #14110e;
+  --gd-dim: rgba(20, 17, 14, 0.65);
+  --gd-faint: #8a8178;
+  --gd-orange: #c53400;
+  --gd-orange-d: #a02a00;
+  --gd-cta: #14110e;
+  --gd-cta-ink: #fafafa;
+  --gd-logo-ink: #14110e;
+
+  --md-primary-fg-color: var(--gd-orange);
+  --md-primary-fg-color--light: #e85a2a;
+  --md-primary-fg-color--dark: var(--gd-orange-d);
+  --md-primary-bg-color: var(--gd-orange);
+  --md-accent-fg-color: var(--gd-orange);
+  --md-accent-bg-color: rgba(197, 52, 0, 0.12);
+  --md-default-bg-color: var(--gd-bg);
+  --md-default-fg-color: var(--gd-text);
+  --md-default-fg-color--light: var(--gd-dim);
+  --md-default-fg-color--lighter: var(--gd-faint);
+  --md-code-bg-color: var(--gd-raised2);
+  --md-code-fg-color: var(--gd-text);
+  --md-footer-bg-color: var(--gd-raised);
+  --md-footer-fg-color: var(--gd-faint);
+  --md-typeset-a-color: var(--gd-orange);
+  --md-typeset-mark-color: rgba(197, 52, 0, 0.14);
+}
+
+body {
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -10%, rgba(197, 52, 0, 0.14), transparent 55%),
+    var(--gd-bg);
+}
+
+.md-header {
+  background-color: color-mix(in srgb, var(--gd-bg) 88%, transparent);
+  border-bottom: 1px solid var(--gd-line);
+  backdrop-filter: blur(16px);
+}
+
+.md-header__button {
+  color: var(--gd-text);
+}
+
+/* Same wordmark as src/app/ghostdeal.css (.gdBrand / .gdBrandAccent) */
+.md-header__button.md-logo,
+.md-nav__button.md-logo {
+  width: auto;
+  height: auto;
+  padding: 0.4rem 0.8rem;
+}
+
+.md-header__button.md-logo .gdBrand,
+.md-nav__button.md-logo .gdBrand {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  font-family: var(--md-text-font, "Space Grotesk", "Helvetica Neue", Arial, sans-serif);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  text-transform: uppercase;
+  font-size: 15px;
+  line-height: 1;
+  color: var(--gd-text);
+  white-space: nowrap;
+}
+
+.md-header__button.md-logo .gdBrandAccent,
+.md-nav__button.md-logo .gdBrandAccent {
+  color: var(--gd-orange);
+}
+
+/* Logo slot shows the wordmark; hide duplicate site name in the header title */
+.md-header__title .md-header__topic:first-child {
+  display: none;
+}
+
+.md-tabs {
+  background-color: var(--gd-raised);
+  border-bottom: 1px solid var(--gd-line);
+}
+
+.md-tabs__link {
+  color: var(--gd-dim);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-size: 0.68rem;
+}
+
+.md-tabs__link--active,
+.md-tabs__link:hover {
+  color: var(--gd-text);
+}
+
+.md-main {
+  background: transparent;
+}
+
+.md-sidebar {
+  background: transparent;
+}
+
+.md-nav__link--active,
+.md-nav__link:hover {
+  color: var(--gd-orange);
+}
+
+.md-typeset h1 {
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  text-transform: uppercase;
+  line-height: 0.95;
+}
+
+.md-typeset h2 {
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.md-typeset .admonition {
+  border-radius: 16px;
+  border: 1px solid var(--gd-line);
+  background: var(--gd-raised);
+}
+
+.md-typeset .admonition.success {
+  border-color: rgba(197, 52, 0, 0.45);
+}
+
+.md-typeset .admonition.note {
+  border-color: var(--gd-line);
+}
+
+.md-typeset table:not([class]) {
+  border: 1px solid var(--gd-line);
+  border-radius: 16px;
+  overflow: hidden;
+  background: var(--gd-raised);
+}
+
+.md-typeset table:not([class]) th {
+  background: var(--gd-raised2);
+  color: var(--gd-text);
+}
+
+.md-typeset table:not([class]) td,
+.md-typeset table:not([class]) th {
+  border-color: var(--gd-line);
+}
+
+.md-typeset img[src*="home-marketplace"] {
+  display: block;
+  width: min(100%, 320px);
+  margin: 1.25rem auto 1.75rem;
+  border-radius: 28px;
+  border: 1px solid var(--gd-line);
+  box-shadow: 0 40px 70px -30px rgba(0, 0, 0, 0.55);
+}
+
+.md-typeset .gd-diagram-row {
+  display: flex !important;
+  flex-flow: row nowrap !important;
+  align-items: stretch;
+  gap: 1.75rem;
+  width: 100%;
+  margin: 0.5rem 0 2.75rem;
+}
+
+.md-typeset .gd-diagram-col {
+  flex: 1 1 50%;
+  width: 50%;
+  max-width: 50%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.md-typeset h5#what-you-do,
+.md-typeset .gd-diagram-col h5,
+.md-typeset .gd-diagram-col h6,
+.md-typeset .gd-diagram-col figcaption,
+.md-typeset .gd-diagram-chain h5 {
+  margin: 0 0 0.75rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--gd-faint);
+}
+
+.md-typeset .gd-role {
+  margin: 0 0 0.85rem;
+  text-align: left;
+  width: auto;
+  max-width: none;
+}
+
+.md-typeset .gd-role p {
+  display: block;
+  width: 96px;
+  height: 96px;
+  margin: 0;
+  overflow: hidden;
+  border-radius: 50%;
+  border: 2px solid var(--gd-line);
+  background: var(--gd-raised2);
+  box-shadow: 0 16px 32px -18px rgba(197, 52, 0, 0.45);
+}
+
+.md-typeset .gd-role img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  transform: scale(1.18);
+  transform-origin: center;
+}
+
+.md-typeset .gd-role figcaption {
+  margin: 0.65rem 0 0;
+}
+
+.md-typeset .gd-steps {
+  margin: 0;
+  padding: 0;
+  max-width: 16.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.md-typeset .gd-step {
+  margin: 0;
+  padding: 0.7rem 0.95rem;
+  background: var(--gd-raised2);
+  color: var(--gd-text);
+  border: 1px solid var(--gd-line);
+  border-radius: 6px;
+  font-size: 0.84rem;
+  line-height: 1.35;
+  text-align: center;
+}
+
+.md-typeset .gd-step-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 1.9rem;
+  flex: 0 0 1.9rem;
+}
+
+.md-typeset .gd-step-arrow::before {
+  content: "";
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 8px solid var(--gd-orange);
+}
+
+.md-typeset .gd-diagram-col .mermaid,
+.md-typeset .gd-diagram-chain .mermaid {
+  margin: 0;
+}
+
+.md-typeset .gd-diagram-col .mermaid svg,
+.md-typeset .gd-diagram-chain .mermaid svg,
+.md-typeset .mermaid svg {
+  max-width: 100%;
+  height: auto;
+}
+
+.md-typeset .gd-diagram-chain {
+  width: 100%;
+  margin: 1.25rem 0 1.5rem;
+  padding-top: 0.5rem;
+  overflow-x: auto;
+}
+
+/* Hide raw mermaid source until the diagram is rendered as SVG. */
+pre.mermaid,
+.mermaid:not(:has(svg)) {
+  visibility: hidden;
+}
+
+/* Mermaid paints inline fills. Override so light/dark both stay readable. */
+.md-typeset .mermaid .actor,
+.md-typeset .mermaid .actor-man,
+.md-typeset .mermaid rect.actor {
+  fill: var(--gd-raised2) !important;
+  stroke: var(--gd-line) !important;
+}
+
+.md-typeset .mermaid .actor-man line,
+.md-typeset .mermaid .actor-man circle,
+.md-typeset .mermaid .actor-man path {
+  fill: var(--gd-text) !important;
+  stroke: var(--gd-text) !important;
+}
+
+.md-typeset .mermaid .note,
+.md-typeset .mermaid rect.note,
+.md-typeset .mermaid .activation0,
+.md-typeset .mermaid .activation1,
+.md-typeset .mermaid .activation2 {
+  fill: var(--gd-raised2) !important;
+  stroke: var(--gd-orange) !important;
+}
+
+.md-typeset .mermaid .labelBox,
+.md-typeset .mermaid rect.labelBox {
+  fill: var(--gd-raised2) !important;
+  stroke: var(--gd-orange) !important;
+}
+
+.md-typeset .mermaid text,
+.md-typeset .mermaid tspan,
+.md-typeset .mermaid .messageText,
+.md-typeset .mermaid .messageText tspan,
+.md-typeset .mermaid .noteText,
+.md-typeset .mermaid .loopText,
+.md-typeset .mermaid .labelText,
+.md-typeset .mermaid .sectionTitle,
+.md-typeset .mermaid .nodeLabel,
+.md-typeset .mermaid .nodeLabel tspan,
+.md-typeset .mermaid .cluster-label,
+.md-typeset .mermaid .cluster-label tspan,
+.md-typeset .mermaid .cluster-label span,
+.md-typeset .mermaid .edgeLabel,
+.md-typeset .mermaid .edgeLabel tspan,
+.md-typeset .mermaid .edgeLabel span,
+.md-typeset .mermaid .label,
+.md-typeset .mermaid .node .label,
+.md-typeset .mermaid .node span,
+.md-typeset .mermaid foreignObject,
+.md-typeset .mermaid foreignObject span,
+.md-typeset .mermaid foreignObject div {
+  fill: var(--gd-text) !important;
+  color: var(--gd-text) !important;
+  stroke: none !important;
+}
+
+.md-typeset .mermaid .sequenceNumber {
+  fill: #fafafa !important;
+}
+
+.md-typeset .mermaid .messageLine0,
+.md-typeset .mermaid .messageLine1 {
+  stroke: var(--gd-orange) !important;
+}
+
+.md-typeset .mermaid .actor-line {
+  stroke: var(--gd-line) !important;
+}
+
+.md-typeset .mermaid .loopLine {
+  stroke: var(--gd-orange) !important;
+}
+
+.md-typeset .mermaid marker path,
+.md-typeset .mermaid .arrowheadPath {
+  fill: var(--gd-orange) !important;
+  stroke: var(--gd-orange) !important;
+}
+
+.md-typeset .mermaid .node rect,
+.md-typeset .mermaid .node polygon,
+.md-typeset .mermaid .cluster rect,
+.md-typeset .mermaid .statediagram-state rect {
+  fill: var(--gd-raised2) !important;
+  stroke: var(--gd-line) !important;
+}
+
+.md-typeset .mermaid .end-state-inner {
+  fill: var(--gd-text) !important;
+}
+
+.md-typeset .mermaid .end-state-outer {
+  stroke: var(--gd-text) !important;
+  fill: var(--gd-raised) !important;
+}
+
+@media screen and (max-width: 900px) {
+  .md-typeset .gd-diagram-row {
+    flex-direction: column;
+  }
+
+  .md-typeset .gd-diagram-col {
+    flex: 1 1 auto;
+    max-width: 100%;
+    width: 100%;
+  }
+}
+
+.md-typeset pre > code,
+.md-typeset code {
+  border-radius: 10px;
+}
+
+.md-typeset a:hover {
+  color: var(--gd-orange-d);
+}
+
+.md-search__form {
+  background: var(--gd-raised);
+  border: 1px solid var(--gd-line);
+  border-radius: 999px;
+}
+
+.md-search__input {
+  color: var(--gd-text);
+}
