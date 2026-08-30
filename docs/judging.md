@@ -35,7 +35,7 @@ The bar from the rules: it runs, on mainnet, for a real user.
 | --- | --- |
 | No login wall | The PWA is public. Guests can open a listing |
 | STRK20 pool on mainnet | Yes. Address in `src/utils/constants.ts` |
-| GhostDeal helper on mainnet | Yes. `0x1ad47d7b59f736383221af3847aeb737d358e0c2cce947482ca48dad6c4ca72` in `src/utils/constants.ts` and `.env.example`. Sepolia helper: `0x2fe8c2bc2194ccdf899c0566057217a34e139c0c5e6f7931f2b24cb436a22cf` |
+| GhostDeal helper on mainnet | Yes. Mainnet `0x1ad47d7b59f736383221af3847aeb737d358e0c2cce947482ca48dad6c4ca72`, Sepolia `0x2fe8c2bc2194ccdf899c0566057217a34e139c0c5e6f7931f2b24cb436a22cf` |
 | Three mainnet transactions | Not yet in `strk20.json`. Use Pay, Claim, or Cancel transactions: each touches the pool and runs through our helper via `privacy_invoke` in the same tx. A shield-only deposit touches the pool but does not run through our contract |
 | Demo video | Not yet. `demo_video` is a required `strk20.json` field (3 minutes) |
 | Live demo URL | Not yet. `strk20.json` `demo_url` is empty |
