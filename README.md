@@ -2,10 +2,7 @@
 
 **Pay like cash.** You pay the agreed price. The other person never sees your wallet or how much crypto you still hold.
 
-[![Try it](https://img.shields.io/badge/Try_it-live-12833b?logo=vercel&logoColor=white)](https://ghost-deal.vercel.app)
-[![Documentation](https://img.shields.io/badge/Docs-how_it_works-1c1917?logo=markdown&logoColor=white)](docs/index.md)
-[![For judges](https://img.shields.io/badge/For_judges-scoring_map-ef6a3a)](docs/judging.md)
-[![License](https://img.shields.io/badge/license-MIT-12833b)](LICENSE)
+**[Try it live](https://ghost-deal.vercel.app)** &middot; [**Documentation**](docs/index.md) &middot; [License](LICENSE)
 
 ![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=nextdotjs&logoColor=white)
 ![React](https://img.shields.io/badge/React-19-149ECA?logo=react&logoColor=white)
