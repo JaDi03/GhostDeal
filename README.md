@@ -2,8 +2,6 @@
 
 **Pay like cash.** You pay the agreed price. The other person never sees your wallet or how much crypto you still hold.
 
-**[Try it live](https://ghost-deal.vercel.app)** &middot; [**Documentation**](docs/index.md) &middot; [License](LICENSE)
-
 ![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=nextdotjs&logoColor=white)
 ![React](https://img.shields.io/badge/React-19-149ECA?logo=react&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178C6?logo=typescript&logoColor=white)
@@ -12,6 +10,8 @@
 ![Starknet](https://img.shields.io/badge/Starknet-mainnet-292929?logo=starknet&logoColor=white)
 
 ![GhostDeal: a private P2P marketplace on Starknet](docs/assets/hero.png)
+
+**Try it live:** [ghost-deal.vercel.app](https://ghost-deal.vercel.app). On a phone, open it inside the Ready wallet.
 
 ## What the ecosystem was missing
 
