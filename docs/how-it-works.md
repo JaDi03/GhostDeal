@@ -114,7 +114,7 @@ flowchart TD
   E -->|Buyer cancel with refundSecret| X["3b. Cancelled (Buyer refunded)"]
 ```
 
-On chain, a commitment is either open or `closed`. Claim and cancel both close it. There is no separate "release" function on the helper: the seller already holds the claim secret from list time.
+On chain, a commitment is either open or `closed`. Claim and cancel both close it.
 
 The marketplace catalog (when Upstash is on) tracks `open` / `locked` / `released` so another phone sees the same deal state after Pay or cash out.
 

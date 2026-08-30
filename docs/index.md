@@ -28,7 +28,7 @@ With cash, you hand over the amount. The seller is paid. They do not see how muc
 ## How your deal stays private
 
 !!! success "Payment goes direct. Wallets stay private."
-    Pay moves only the listing price from shielded funds. The app never shares either person's wallet address with the other side. The UI never shows a counterparty balance. The rest of either wallet stays with its owner.
+    Pay moves only the listing price from shielded funds. The app never shares either person's wallet address with the other side. The rest of either wallet stays with its owner.
 
 !!! note "Built for the person across the table"
     GhostDeal protects you from the other party in the deal. A dedicated analyst with chain forensics tools and time could still correlate public on-chain steps. Your neighbor at the meetup cannot.
@@ -40,13 +40,6 @@ With cash, you hand over the amount. The seller is paid. They do not see how muc
 | What the seller can see | Your wallet address and often your full payment history on an explorer | That the price was locked into escrow. No wallet address or balance shared. |
 | What you pay | The price, plus a public link to your wallet | The listing price, from shielded funds (USDC or STRK) |
 | After the sale | That address can keep being watched on-chain | The rest of your shielded balance stays yours |
-
-## Explore
-
-- [How a deal works](how-it-works.md): the four steps, then the protocol sequence.
-- [What is private](privacy.md): hidden vs public, stated honestly.
-- [Architecture](architecture.md): Wallet API + `privacy_invoke` helper. The dapp never holds viewing keys.
-- [Run locally](run.md): clone, env, `yarn dev`.
 
 ## Acknowledgments
 

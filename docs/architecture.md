@@ -2,7 +2,7 @@
 
 GhostDeal is a **private dapp**: the wallet holds the keys, the app asks it to act, a small Cairo helper is the deal logic.
 
-That is the STRK20 route for consumer apps. We do not run a proving backend and we do not take custody of notes.
+That is the STRK20 Wallet API route: no proving backend, no custody of notes, no viewing keys in the app. We do not use the Privacy SDK — that route is for wallets and key-holding backends.
 
 ## Stack
 
@@ -54,20 +54,11 @@ Listings can be priced in USDC or STRK. Pool fees are always STRK.
 | **STRK** | Listing price or gas / pool fees | Native Starknet fuel. STRK listings pay in shielded STRK. USDC listings still need shielded STRK for the pool fee. |
 
 ### Token-agnostic escrow
-The Cairo helper (`cairo/src/lib.cairo`) stores `token: ContractAddress` and `amount: u256`. Pay in this dapp supports STRK and native Circle USDC only (`src/lib/escrow.ts`). Addresses live in `src/utils/constants.ts`.
+The Cairo helper (`cairo/src/lib.cairo`) stores `token: ContractAddress` and `amount: u256`. Pay in this dapp supports STRK and native Circle USDC only (`src/lib/escrow.ts`).
 
 ## Shared listings
 
 Listings are off-chain. With `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN`, the catalog is shared across phones (`src/lib/marketplaceRedis.ts`). Pay, cash out, and cancel patch status: `open`, `locked`, or `released`. Without those env vars, listings stay in this browser.
-
-## What we deliberately do not use
-
-| Piece | Why it is absent |
-| --- | --- |
-| Privacy SDK (`createPrivateTransfers`) | That route is for wallets and key-holding backends. A marketplace must not see viewing keys |
-| Shadow accounts / stealth accounts | A different STRK20 surface. GhostDeal's promise is "the other person does not see your balance", which Wallet API + helper already delivers |
-| App-mediated private transfer | That would put the app in the custody path |
-| Embedded / email wallets | Not privacy-enabled on this stack today |
 
 ## Networks and addresses
 
@@ -77,5 +68,3 @@ Do not copy addresses from memory. Read `src/utils/constants.ts`.
 - STRK20 pool Sepolia: `0x0254a6b2997ef52e9f830ce1f543f6b29768295e8d17e2267d672c552cfe0d91`
 - GhostDeal helper Mainnet: `0x1ad47d7b59f736383221af3847aeb737d358e0c2cce947482ca48dad6c4ca72` (fallback in `src/utils/constants.ts`, same value in `.env.example`)
 - GhostDeal helper Sepolia: `0x0` (not wired)
-
-The pool and the helper are live on mainnet. The judged public URL is still missing: `strk20.json` `demo_url` is empty, and `https://ghostdeal.vercel.app` returns 404.
