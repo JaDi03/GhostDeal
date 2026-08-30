@@ -2,7 +2,7 @@
 
 GhostDeal is a **private dapp**: the wallet holds the keys, the app asks it to act, a small Cairo helper is the deal logic.
 
-That is the STRK20 Wallet API route: no proving backend, no custody of notes, no viewing keys in the app. We do not use the Privacy SDK — that route is for wallets and key-holding backends.
+That is the STRK20 Wallet API route: no proving backend, no custody of notes, no viewing keys in the app.
 
 ## Stack
 
@@ -58,7 +58,7 @@ The Cairo helper (`cairo/src/lib.cairo`) stores `token: ContractAddress` and `am
 
 ## Shared listings
 
-Listings are off-chain. With `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN`, the catalog is shared across phones (`src/lib/marketplaceRedis.ts`). Pay, cash out, and cancel patch status: `open`, `locked`, or `released`. Without those env vars, listings stay in this browser.
+Listings are off-chain. With `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN`, the catalog is shared across phones (`src/lib/marketplaceRedis.ts`); Pay, cash out, and cancel patch the status (`open`, `locked`, or `released`).
 
 ## Networks and addresses
 
@@ -66,5 +66,5 @@ Do not copy addresses from memory. Read `src/utils/constants.ts`.
 
 - STRK20 pool Mainnet: `0x040337b1af3c663e86e333bab5a4b28da8d4652a15a69beee2b677776ffe812a`
 - STRK20 pool Sepolia: `0x0254a6b2997ef52e9f830ce1f543f6b29768295e8d17e2267d672c552cfe0d91`
-- GhostDeal helper Mainnet: `0x1ad47d7b59f736383221af3847aeb737d358e0c2cce947482ca48dad6c4ca72` (fallback in `src/utils/constants.ts`, same value in `.env.example`)
-- GhostDeal helper Sepolia: `0x0` (not wired)
+- GhostDeal helper Mainnet: `0x1ad47d7b59f736383221af3847aeb737d358e0c2cce947482ca48dad6c4ca72`
+- GhostDeal helper Sepolia: `0x2fe8c2bc2194ccdf899c0566057217a34e139c0c5e6f7931f2b24cb436a22cf`

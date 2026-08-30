@@ -116,8 +116,6 @@ flowchart TD
 
 On chain, a commitment is either open or `closed`. Claim and cancel both close it.
 
-The marketplace catalog (when Upstash is on) tracks `open` / `locked` / `released` so another phone sees the same deal state after Pay or cash out.
-
 ## Who touches what
 
 | Action | Escrow function | On-chain visibility |
