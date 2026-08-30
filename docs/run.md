@@ -1,21 +1,31 @@
 # Run locally
 
+## Prerequisites
+
+- **Node 20.9+** (Next.js 16 requirement) and **Yarn 1.22+**. The repo pins Yarn via `packageManager`; `corepack enable` sets it up.
+- A **Ready wallet**: Chrome extension for desktop, or the Ready mobile app.
+- An [Alchemy](https://www.alchemy.com) Starknet API key.
+- Optional: [Upstash](https://upstash.com) Redis credentials for a shared catalog.
+- Optional: [Scarb](https://docs.swmansion.com/scarb), only if you want to rebuild the Cairo helper.
+
 ## App
 
 ```bash
+git clone https://github.com/JaDi03/GhostDeal.git
+cd GhostDeal
 yarn install
 cp .env.example .env.local
 ```
 
-Fill `.env.local` from [`.env.example`](https://github.com/JaDi03/GhostDeal/blob/main/.env.example). Never commit it.
+Fill `.env.local`. Never commit it.
 
 | Variable | Role |
 | --- | --- |
 | `NEXT_PUBLIC_PROVIDER_URL` | Alchemy Starknet API key only (the URL prefix is already in `src/utils/constants.ts`) |
 | `NEXT_PUBLIC_GHOSTDEAL_ESCROW_MAINNET` | Mainnet helper. `.env.example` ships the 2026-08-28 deploy |
-| `NEXT_PUBLIC_GHOSTDEAL_ESCROW_SEPOLIA` | `0x0` = Sepolia not wired |
+| `NEXT_PUBLIC_GHOSTDEAL_ESCROW_SEPOLIA` | Sepolia helper address |
 | `NEXT_PUBLIC_WC_PROJECT_ID` | Optional Reown id for ReadyConnector |
-| `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` | Required for a public marketplace. Without them, listings stay in this browser and the UI says marketplace storage is off |
+| `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` | Required for a public marketplace. Without them, listings stay in this browser |
 
 ```bash
 yarn dev
@@ -33,39 +43,8 @@ yarn lint
 yarn build
 ```
 
-If you change Cairo:
+If you change the Cairo helper:
 
 ```bash
 cd cairo && scarb build
 ```
-
-## This documentation site
-
-Python 3, then (Windows):
-
-```bash
-python -m venv .venv
-.\.venv\Scripts\pip install -r requirements-docs.txt
-.\.venv\Scripts\mkdocs serve
-```
-
-macOS / Linux: `source .venv/bin/activate` then `pip install -r requirements-docs.txt` and `mkdocs serve`.
-
-Open [http://127.0.0.1:8000](http://127.0.0.1:8000). This stays local until we publish.
-
-```bash
-mkdocs build
-```
-
-writes a static site into `site/` (gitignored).
-
-## Reuse the helper
-
-This repo is not an npm platform. Copy `cairo/` and the Wallet API helpers in `src/lib/escrow.ts` into another dapp.
-
-Rules that must travel with the code:
-
-- The dapp never holds viewing keys.
-- The dapp never calls the Privacy SDK.
-- Do not display a counterparty balance.
-- Do not invent pool, token, or helper addresses. Read `src/utils/constants.ts`.
