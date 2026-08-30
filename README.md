@@ -2,85 +2,66 @@
 
 **Pay like cash.** You pay the agreed price. The other person never sees your wallet or how much crypto you still hold.
 
-Mobile-first PWA for in-person P2P sales on Starknet [STRK20](https://strk20.starknet.io). A seller lists an item in USDC. A buyer pays that price into private escrow. After the item changes hands, the seller cashes out into a private note.
+![GhostDeal: a private P2P marketplace on Starknet](docs/assets/hero.png)
 
-This is for ordinary people: buying a used PC from a neighbor, not a checkout desk and not a mixer.
+## What the ecosystem was missing
 
-[STRK20 Private Sprint](https://strk20.starknet.io/hackathon) · Inspired by [IDEA-12](https://github.com/starkience/strk20-hackathon/blob/main/IDEAS.md) (marketplace escrow) and IDEA-09 (pay by QR / link)
+Privacy on Starknet already exists — but it was built for traders: private swaps, private lending, private transfers between wallets. The everyday layer was missing: **buying something from a person, in person.**
 
-## The idea
+Cash works like that. You agree on a price, hand over the bills, take the item home. Nobody asks for your bank statement. Public crypto does the opposite: **one payment puts your whole wallet on display for a stranger** — your address, your history, your remaining balance — one click away on any explorer. Fine for a trader. Not fine when you are buying a used PC from a neighbor.
 
-```mermaid
-flowchart LR
-  A["Agree on a price"] --> B["Pay that price"]
-  B --> C["Take the item"]
-  C --> D["Seller cashes out"]
-```
+GhostDeal is that missing layer: a mobile PWA for ordinary people — the purchases you already make today. No app store, no sign-up: it opens in the phone's browser and pays from the Ready wallet you already have. The other side sees that the price was paid. Never what else you hold.
 
-Cash already works this way. You hand over a bill. The seller does not get a statement of your bank account. Public crypto usually does the opposite: one payment can expose the rest of the wallet. GhostDeal brings back that cash feeling.
+## How it works
 
-**The advantage:** You pay in private without ever exposing your wallet address or remaining balance to the counterparty.
+| 📷 | 🤝 | 💸 |
+| --- | --- | --- |
+| **List it** | **Meet up** | **Get paid** |
+| Set a price in USDC or STRK, share the QR | Hand over the item like always | The price lands as a private note. No wallet shown |
 
-**We do not promise:** invisibility against a global chain observer. Shield deposits and open-note amounts at cash-out can stay public. Timing can leak.
+If the deal falls through, the buyer cancels and the refund comes back as a private note too.
+
+## The promise, no fine print
+
+**We promise:** the other person does not see your wallet, your balance, or your history. Only the price.
+
+**We do not promise:** invisibility against a chain observer. Pool deposits, cash-out amounts, and timing stay public. We say this plainly, because privacy oversold is privacy broken.
 
 | Paying from a public wallet | Paying with GhostDeal |
 | --- | --- |
-| Seller can open your address on an explorer | Seller sees that the price was locked into escrow. No wallet address or balance shared. |
-| The rest of your history is often one click away | The rest of your shielded balance stays yours |
+| The seller opens your address on an explorer and sees your full history | The seller sees that the price was locked into escrow. No address, no balance |
+| The rest of your wallet is one click away | The rest of your shielded balance stays yours |
 
-## What is public vs private
+## Why it is actually private
 
-- **Public:** listing title, price, photo; that it was funded; shield deposit address, token, and amount; open-note amount at cash-out.
-- **Private:** who paid, which notes were spent, remaining shielded balance, who received the cash-out note.
-- Full map: [docs/privacy.md](docs/privacy.md). How a deal works: [docs/how-it-works.md](docs/how-it-works.md).
+The app never touches your keys. GhostDeal runs on the Starknet Wallet API: your Ready wallet builds and proves the private transactions on your device. Escrow is a small Cairo contract with `privacy_invoke` that only the STRK20 pool can call — no admin key, no upgrade, no custody. Pay and cash out happen inside the pool's shielded zone; the app just orchestrates.
+
+Full details in the [Architecture](docs/architecture.md) page.
 
 ## Stack
 
-- Next.js 16, React 19, TypeScript
-- starknet.js 10 + get-starknet v6 (Wallet API, Ready wallet)
-- Cairo `privacy_invoke` escrow helper (`cairo/`)
-- Mainnet STRK20 pool: `0x040337b1af3c663e86e333bab5a4b28da8d4652a15a69beee2b677776ffe812a`
-
-The dapp never holds viewing keys and never calls the Privacy SDK.
+- Next.js 16, React 19, TypeScript — mobile-first PWA
+- starknet.js 10 + get-starknet v6 — Starknet Wallet API (`WalletAccountV6`, `strk20InvokeTransaction`)
+- Cairo `privacy_invoke` escrow (`cairo/`) — Deposit, Claim, Cancel
+- Official STRK20 privacy pool on mainnet
 
 ## Run locally
 
 ```bash
+git clone https://github.com/JaDi03/GhostDeal.git
+cd GhostDeal
 yarn install
 cp .env.example .env.local
-```
-
-Put your [Alchemy](https://www.alchemy.com) Starknet API key in `NEXT_PUBLIC_PROVIDER_URL`. Mainnet helper is already in `.env.example`. Sepolia is `0x0` (not wired). For a public marketplace set `UPSTASH_REDIS_REST_URL` and `UPSTASH_REDIS_REST_TOKEN`. Never commit `.env.local`.
-
-```bash
+# put your Alchemy Starknet API key in NEXT_PUBLIC_PROVIDER_URL
 yarn dev
 ```
 
-Open http://localhost:3000. Desktop: Chrome + Ready extension. Phone: open the PWA inside Ready.
+Open http://localhost:3000. Desktop: Chrome + the Ready extension. Phone: open the PWA inside the Ready app.
 
-```bash
-yarn lint
-yarn build
-```
+## Documentation
 
-## Docs site (local)
+Full guide on the MkDocs site: [how a deal works](docs/how-it-works.md), [what is private](docs/privacy.md), [architecture](docs/architecture.md), and [running it locally](docs/run.md). Judges: see the [scoring map](docs/judging.md).
 
-```bash
-python -m venv .venv
-.\.venv\Scripts\pip install -r requirements-docs.txt
-.\.venv\Scripts\mkdocs serve
-```
+## Credits and license
 
-Then http://127.0.0.1:8000. Start at the [MkDocs home](docs/index.md).
-
-## Reuse
-
-Copy `cairo/` and `src/lib/escrow.ts` into another dapp. This repo is not an npm platform. Do not invent pool or helper addresses: read `src/utils/constants.ts`.
-
-## Acknowledgments
-
-Bootstrapped from the official [STRK20 starter kit](https://github.com/Akashneelesh/strk20-starter-kit) provided for the hackathon. Wallet connect scaffolding in `src/app/components/Wallet/` derives from that kit (copyright Philippe ROSTAN, 2023, MIT). GhostDeal escrow, marketplace, and UI are original work (JaDi03, 2026).
-
-## License
-
-MIT. See [LICENSE](LICENSE).
+Built for the [STRK20 Private Sprint](https://strk20.starknet.io/hackathon). Bootstrapped from the official [STRK20 starter kit](https://github.com/Akashneelesh/strk20-starter-kit) (Philippe ROSTAN, 2023, MIT); the GhostDeal escrow, marketplace, and UI are original work (JaDi03, 2026). MIT — see [LICENSE](LICENSE).
