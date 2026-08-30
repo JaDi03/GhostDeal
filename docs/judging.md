@@ -8,8 +8,8 @@ This page maps the repo to the four scoring criteria. Every claim points at code
 
 Using an idea from the list was never required. GhostDeal is its own product that takes two ideas as starting points rather than implementing either:
 
-- **[IDEA-12 · Marketplace escrow](https://github.com/starkience/strk20-hackathon/blob/main/IDEAS.md)** — same shape: buyer pays into private escrow, seller receives a private note. Different trust design: no arbitrator and no buyer confirmation. The seller cashes out with a claim secret held since list time; the buyer cancels with a refund secret saved at pay time.
-- **[IDEA-09 · Payments by identifier](https://github.com/starkience/strk20-hackathon/blob/main/IDEAS.md)** — the QR/link entry, but the listing itself is the payment target instead of a wallet address.
+- **[IDEA-12 · Marketplace escrow](https://github.com/starkience/strk20-hackathon/blob/main/IDEAS.md)**: same shape: buyer pays into private escrow, seller receives a private note. Different trust design: no arbitrator and no buyer confirmation. The seller cashes out with a claim secret held since list time; the buyer cancels with a refund secret saved at pay time.
+- **[IDEA-09 · Payments by identifier](https://github.com/starkience/strk20-hackathon/blob/main/IDEAS.md)**: the QR/link entry, but the listing itself is the payment target instead of a wallet address.
 
 That is the innovation case in one line: not a new proving system, a better take on ideas the ecosystem already published.
 
