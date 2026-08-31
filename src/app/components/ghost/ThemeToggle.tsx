@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 
 function SunIcon() {
   return (
-    <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
       <circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" strokeWidth="1.8" />
       <path
         fill="none"
@@ -19,7 +19,7 @@ function SunIcon() {
 
 function MoonIcon() {
   return (
-    <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
       <path
         fill="none"
         stroke="currentColor"

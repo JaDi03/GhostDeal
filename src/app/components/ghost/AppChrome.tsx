@@ -31,42 +31,52 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="gd">
-      <div className="gdShell">
-        <header className="gdHeader">
-          <div className="gdHeaderLead">
-            <Link href="/" className="gdBrand">
-              Ghost<span className="gdBrandAccent">Deal</span>
-            </Link>
-            <ThemeToggle />
-          </div>
-          <div className="gdWallet">
-            <NetworkSelect />
-            <SelectWallet variant="nav" />
-          </div>
-        </header>
-        <div className="gdMain">{children}</div>
-        <a
-          className="gdPowered"
-          href="https://strk20.starknet.io"
-          target="_blank"
-          rel="noreferrer"
-        >
-          Powered by
-          <span className="gdStrk20Mark" aria-label="STRK20">
-            STRK<span className="gdBrandAccent">[20]</span>
-          </span>
-        </a>
-        <nav className="gdBottom" aria-label="Primary">
-          {tabs.map((t) => (
-            <Link
-              key={t.href}
-              href={t.href}
-              className={path === t.href ? "gdTab gdTabOn" : "gdTab"}
+      <div className="gdStage">
+        <p className="gdStageKicker">Live app</p>
+        <div className="gdDevice">
+          <span className="gdDeviceBtn gdDeviceBtnVol" aria-hidden="true" />
+          <span className="gdDeviceBtn gdDeviceBtnPwr" aria-hidden="true" />
+          <div className="gdShell">
+            <header className="gdHeader">
+              <div className="gdHeaderLead">
+                <Link href="/" className="gdBrand">
+                  Ghost<span className="gdBrandAccent">Deal</span>
+                </Link>
+              </div>
+              <div className="gdWallet">
+                <NetworkSelect />
+                <SelectWallet variant="nav" />
+                <ThemeToggle />
+              </div>
+            </header>
+            <div className="gdMain">{children}</div>
+            <a
+              className="gdPowered"
+              href="https://strk20.starknet.io"
+              target="_blank"
+              rel="noreferrer"
             >
-              {t.label}
-            </Link>
-          ))}
-        </nav>
+              Powered by
+              <span className="gdStrk20Mark" aria-label="STRK20">
+                STRK<span className="gdBrandAccent">[20]</span>
+              </span>
+            </a>
+            <nav className="gdBottom" aria-label="Primary">
+              {tabs.map((t) => (
+                <Link
+                  key={t.href}
+                  href={t.href}
+                  className={path === t.href ? "gdTab gdTabOn" : "gdTab"}
+                >
+                  {t.label}
+                </Link>
+              ))}
+            </nav>
+          </div>
+        </div>
+        <p className="gdStageHint">
+          Click inside like your phone. On mobile, open this site in the Ready in-app browser.
+        </p>
       </div>
     </div>
   );
