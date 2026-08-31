@@ -30,7 +30,7 @@ export const STRK_DECIMALS = 18n;
 export const USDC_DECIMALS = 6n;
 
 // Wallet API felts must be unpadded hex; the literal "0x0" and ${...} placeholders are the only exemptions.
-const felt = (value: string | bigint): string => num.toHex(BigInt(value));
+export const felt = (value: string | bigint): string => num.toHex(BigInt(value));
 
 export function isZeroAddress(value: string): boolean {
   try {
@@ -113,24 +113,30 @@ function sameFelt(a: string, b: string): boolean {
   }
 }
 
-// strk20InvokeTransaction can stall forever when the proving relay wedges; a
-// submit that times out may still land, so callers must poll the chain.
-const PRIVATE_SUBMIT_TIMEOUT_MS = 180_000;
+// One private wallet request at a time, enforced synchronously. The wallet's
+// promise settles only when it hands back the hash, and proving can run for
+// minutes with the request still live inside the wallet. Auto-rejecting that
+// wait re-enabled the UI mid-proof and the natural retry then submitted the
+// operation a second time (mainnet 2026-08-30: two identical shields two
+// minutes apart), so the wait is unbounded here and an explicit human cancel
+// is the only early release.
+let privateOpInFlight = false;
+export async function singlePrivateOp<T>(work: () => Promise<T>): Promise<T> {
+  if (privateOpInFlight) {
+    throw new Error("A private operation is already waiting on your wallet. Let it finish first.");
+  }
+  privateOpInFlight = true;
+  try {
+    return await work();
+  } finally {
+    privateOpInFlight = false;
+  }
+}
 
-function boundPrivateSubmit<T>(work: Promise<T>): Promise<T> {
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  const expiry = new Promise<never>((_, reject) => {
-    timer = setTimeout(
-      () =>
-        reject(
-            new Error(
-              "The wallet stopped responding while proving. Wait a few minutes and check the deal status on the chain before retrying. The transaction can still land.",
-            ),
-        ),
-      PRIVATE_SUBMIT_TIMEOUT_MS,
-    );
-  });
-  return Promise.race([work, expiry]).finally(() => clearTimeout(timer));
+// Escape hatch for a wedged request, to be called only from an explicit user
+// action that has been told the abandoned operation may still land on its own.
+export function forceReleasePrivateOp(): void {
+  privateOpInFlight = false;
 }
 
 // Wallet-mediated read of the user's shielded balance. No viewing key ever
@@ -214,7 +220,7 @@ export async function shieldTokens(input: {
       amount: felt(input.amountWei),
     },
   ];
-  const { transaction_hash } = await boundPrivateSubmit(input.account.strk20InvokeTransaction(actions));
+  const { transaction_hash } = await singlePrivateOp(() => input.account.strk20InvokeTransaction(actions));
   return transaction_hash;
 }
 
@@ -228,7 +234,7 @@ export async function unshieldTokens(input: {
   const actions: STRK20_ACTION[] = [
     { type: "withdraw", token: felt(input.token), amount: felt(input.amountWei), recipient: felt(input.account.address) },
   ];
-  const { transaction_hash } = await boundPrivateSubmit(input.account.strk20InvokeTransaction(actions));
+  const { transaction_hash } = await singlePrivateOp(() => input.account.strk20InvokeTransaction(actions));
   return transaction_hash;
 }
 
@@ -296,7 +302,7 @@ export async function payListingDeposit(input: {
   });
   // Direct submit: no strk20PrepareInvoke first: it re-triggers balance
   // permissions and can loop the wallet permission popup.
-  const { transaction_hash } = await boundPrivateSubmit(input.account.strk20InvokeTransaction(actions));
+  const { transaction_hash } = await singlePrivateOp(() => input.account.strk20InvokeTransaction(actions));
   return transaction_hash;
 }
 
@@ -382,7 +388,7 @@ export async function claimEscrowFunds(input: {
     recipient: input.account.address,
     token: input.token,
   });
-  const { transaction_hash } = await boundPrivateSubmit(input.account.strk20InvokeTransaction(actions));
+  const { transaction_hash } = await singlePrivateOp(() => input.account.strk20InvokeTransaction(actions));
   return transaction_hash;
 }
 
@@ -404,7 +410,7 @@ export async function cancelEscrowFunds(input: {
     recipient: input.account.address,
     token: input.token,
   });
-  const { transaction_hash } = await boundPrivateSubmit(input.account.strk20InvokeTransaction(actions));
+  const { transaction_hash } = await singlePrivateOp(() => input.account.strk20InvokeTransaction(actions));
   return transaction_hash;
 }
 
@@ -425,5 +431,49 @@ export async function escrowCommitmentToken(
     return token && BigInt(token) !== 0n ? token : null;
   } catch {
     return null;
+  }
+}
+
+// Plain RPC read of a public ERC20 balance (u256: low, high). No wallet prompt,
+// so it is safe to poll while a private request is being proven.
+export async function publicTokenBalance(
+  provider: ProviderInterface,
+  token: string,
+  address: string,
+): Promise<bigint | null> {
+  try {
+    const r = await provider.callContract({
+      contractAddress: token,
+      entrypoint: "balance_of",
+      calldata: [felt(address)],
+    });
+    return BigInt(r[0]) + (BigInt(r[1] ?? "0x0") << 128n);
+  } catch {
+    return null;
+  }
+}
+
+// Poll until the public balance moves in `direction` or the window closes.
+// This is the sync signal when the wallet's promise lags behind a transaction
+// that already landed: the chain is the source of truth, never the wallet's
+// response.
+export async function waitForPublicBalanceMove(
+  provider: ProviderInterface,
+  token: string,
+  address: string,
+  before: bigint,
+  direction: "down" | "up",
+  timeoutMs = 300_000,
+  shouldStop: () => boolean = () => false,
+): Promise<boolean> {
+  const deadline = Date.now() + timeoutMs;
+  for (;;) {
+    if (shouldStop()) return false;
+    const now = await publicTokenBalance(provider, token, address);
+    if (now !== null && (direction === "down" ? now < before : now > before)) {
+      return true;
+    }
+    if (Date.now() >= deadline) return false;
+    await new Promise((resolve) => setTimeout(resolve, 8_000));
   }
 }
