@@ -271,7 +271,6 @@ export default function SelectWallet({ variant = "ctaBig" }: { variant?: "nav" |
       return (
         <div className="gdSession">
           <div className={styles.addrPill}>
-            <span className={styles.addrDot} />
             <button
               type="button"
               className={styles.addrDisconnect}

@@ -20,28 +20,30 @@
 .addrPill {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 2px;
   color: var(--gd-text);
   background: var(--gd-raised);
   border: 1px solid var(--gd-line);
   border-radius: 999px;
-  padding: 4px 4px 4px 12px;
+  padding: 2px;
+  max-width: 100%;
+  min-width: 0;
 }
-.addrDot { width: 8px; height: 8px; border-radius: 50%; background: var(--gd-orange); flex-shrink: 0; }
 .addrDisconnect {
   font-family: var(--font-body), sans-serif;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
   color: var(--gd-dim);
   background: var(--gd-raised2);
   border: none;
   border-radius: 999px;
-  padding: 6px 10px;
+  padding: 5px 8px;
   cursor: pointer;
+  white-space: nowrap;
 }
 .addrIcon {
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   display: grid;
   place-items: center;
   border: none;
@@ -50,6 +52,7 @@
   border-radius: 999px;
   cursor: pointer;
   padding: 0;
+  flex-shrink: 0;
 }
 .addrIcon:hover { background: var(--gd-raised2); }
 

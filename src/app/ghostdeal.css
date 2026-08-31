@@ -57,6 +57,22 @@
   padding-bottom: calc(88px + env(safe-area-inset-bottom, 0px));
 }
 
+/* Desktop-only phone chassis. display:contents on small screens so this wrapper
+   does not change the live PWA layout. */
+.gdDevice {
+  display: contents;
+}
+
+.gdStage {
+  display: contents;
+}
+
+.gdStageKicker,
+.gdStageHint,
+.gdDeviceBtn {
+  display: none;
+}
+
 .gdHeader {
   position: sticky;
   top: 0;
@@ -64,8 +80,8 @@
   display: flex;
   flex-direction: row;
   align-items: center;
-  gap: 8px;
-  padding: calc(10px + env(safe-area-inset-top, 0px)) 16px 10px;
+  gap: 10px;
+  padding: calc(10px + env(safe-area-inset-top, 0px)) 12px 10px;
   background: color-mix(in srgb, var(--gd-bg) 88%, transparent);
   border-bottom: 1px solid var(--gd-line);
   overflow: visible;
@@ -74,9 +90,10 @@
 .gdHeaderLead {
   display: flex;
   align-items: center;
-  gap: 8px;
-  flex: 1;
+  gap: 6px;
+  flex: 0 0 auto;
   min-width: 0;
+  padding-right: 12px;
 }
 
 .gdBrand {
@@ -86,9 +103,10 @@
   font-weight: 800;
   letter-spacing: -0.03em;
   text-transform: uppercase;
-  font-size: 15px;
+  font-size: 14px;
   color: var(--gd-text);
   white-space: nowrap;
+  padding-right: 2px;
 }
 
 .gdBrandAccent {
@@ -96,8 +114,8 @@
 }
 
 .gdIconBtn {
-  width: 44px;
-  height: 44px;
+  width: 36px;
+  height: 36px;
   border: 1px solid var(--gd-line);
   border-radius: 999px;
   background: var(--gd-raised);
@@ -112,26 +130,28 @@
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 8px;
-  flex-shrink: 0;
+  gap: 6px;
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .gdWallet > button {
-  min-height: 44px;
+  min-height: 36px;
 }
 
 .gdNet {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  height: 44px;
-  padding: 0 14px;
+  height: 36px;
+  margin-left: 4px;
+  padding: 0 10px;
   border: 1px solid var(--gd-line);
   border-radius: 999px;
   background: var(--gd-raised);
   color: var(--gd-text);
   font: inherit;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.02em;
   cursor: pointer;
@@ -535,33 +555,162 @@
     height: 100dvh;
     max-height: 100dvh;
     min-height: 0;
-    padding: 12px 16px;
+    padding: 28px 24px 32px;
     overflow: hidden;
+    background:
+      radial-gradient(ellipse 42% 28% at 50% 62%, rgba(197, 52, 0, 0.16), transparent 70%),
+      radial-gradient(ellipse 80% 50% at 50% -10%, rgba(197, 52, 0, 0.14), transparent 55%),
+      var(--gd-bg);
   }
 
-  .gd:has(.gdPickerOverlay) {
-    overflow: visible;
+  .gdHeader {
+    position: static;
+  }
+
+  .gdPickerOverlay {
+    position: absolute;
+    inset: 0;
+    z-index: 80;
+    padding: 16px;
+  }
+
+  .gdPickerOverlay > * {
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .gdModal {
+    position: absolute;
+    place-items: end stretch;
+  }
+
+  .gdSheet {
+    width: 100%;
+    max-width: none;
+  }
+
+  .gdStage {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    max-height: 100%;
+  }
+
+  .gdStageKicker {
+    display: block;
+    margin: 0;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: var(--gd-faint);
+  }
+
+  .gdStageHint {
+    display: block;
+    margin: 0;
+    max-width: 340px;
+    text-align: center;
+    font-size: 13px;
+    line-height: 1.45;
+    color: var(--gd-dim);
+  }
+
+  .gdDevice {
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    width: 100%;
+    max-width: 378px;
+    height: min(720px, calc(100dvh - 148px));
+    padding: 16px 11px 18px;
+    border-radius: 46px;
+    background:
+      linear-gradient(160deg, #3a3a3a 0%, #1a1a1a 14%, #0c0c0c 42%, #111 78%, #2a2a2a 100%);
+    box-shadow:
+      inset 0 1px 1px rgba(255, 255, 255, 0.28),
+      inset 0 -1px 1px rgba(0, 0, 0, 0.7),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.08),
+      0 0 0 1px rgba(0, 0, 0, 0.85),
+      0 40px 70px -18px rgba(0, 0, 0, 0.78),
+      0 10px 22px -10px rgba(0, 0, 0, 0.5),
+      0 0 90px -28px var(--gd-glow);
+  }
+
+  .gdDeviceBtn {
+    display: block;
+    position: absolute;
+    width: 3px;
+    background: linear-gradient(180deg, #4a4a4a, #1a1a1a 40%, #0a0a0a);
+    box-shadow: inset 1px 0 0 rgba(255, 255, 255, 0.18);
+    pointer-events: none;
+    z-index: 2;
+  }
+
+  .gdDeviceBtnVol {
+    left: -3px;
+    top: 118px;
+    height: 64px;
+    border-radius: 2px 0 0 2px;
+  }
+
+  .gdDeviceBtnPwr {
+    right: -3px;
+    top: 168px;
+    height: 42px;
+    border-radius: 0 2px 2px 0;
+  }
+
+  .gdDevice::before {
+    content: "";
+    position: absolute;
+    top: 7px;
+    left: 50%;
+    width: 96px;
+    height: 11px;
+    transform: translateX(-50%);
+    border-radius: 999px;
+    background:
+      radial-gradient(circle at 78% 50%, #1c3d52 0 2.5px, transparent 3px),
+      #050505;
+    box-shadow:
+      inset 0 1px 1px rgba(255, 255, 255, 0.14),
+      0 0 0 1px rgba(0, 0, 0, 0.65);
+    pointer-events: none;
+    z-index: 60;
+  }
+
+  .gdDevice::after {
+    content: "";
+    position: absolute;
+    bottom: 7px;
+    left: 50%;
+    width: 112px;
+    height: 4px;
+    transform: translateX(-50%);
+    border-radius: 999px;
+    background: rgba(250, 250, 250, 0.22);
+    pointer-events: none;
+    z-index: 60;
   }
 
   .gdShell {
-    max-width: 430px;
+    flex: 1;
     width: 100%;
-    height: 100%;
-    max-height: 100%;
+    max-width: none;
+    height: auto;
+    max-height: none;
     min-height: 0;
-    border: 1px solid var(--gd-line);
-    border-radius: 28px;
-    box-shadow: 0 40px 70px -30px rgba(0, 0, 0, 0.7);
+    border: none;
+    border-radius: 34px;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
     overflow: hidden;
   }
 
   .gdMain {
     min-height: 0;
     overflow-y: auto;
-  }
-
-  .gdShell:has(.gdPickerOverlay) {
-    overflow: visible;
   }
 
   .gdH1 {
@@ -572,6 +721,17 @@
 @media (display-mode: standalone) {
   .gd {
     padding: 0;
+  }
+
+  .gdStage,
+  .gdDevice {
+    display: contents;
+  }
+
+  .gdStageKicker,
+  .gdStageHint,
+  .gdDeviceBtn {
+    display: none;
   }
 
   .gdShell {
