@@ -9,8 +9,10 @@
     "lint": "eslint ."
   },
   "dependencies": {
+    "@avnu/avnu-sdk": "^4.2.0",
     "@starknet-io/get-starknet-discovery": "6.0.2",
     "@starknet-io/get-starknet-wallet-standard": "6.0.2",
+    "ethers": "^6.15.0",
     "next": "^16.0.8",
     "qrcode": "1.5.3",
     "react": "19.2.1",

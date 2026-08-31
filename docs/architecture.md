@@ -30,6 +30,7 @@ flowchart TB
 | Wallet | starknet.js 10, get-starknet discovery 6, Ready. Connect on desktop via the injected picker. Connect on phone inside Ready's in-app browser |
 | Actions | `strk20InvokeTransaction` in `src/lib/escrow.ts` |
 | Helper | Cairo `privacy_invoke` escrow in `cairo/` |
+| Private swaps | AVNU's deployed executor for shielded STRK ↔ USDC, quoted from AVNU's public API and batched in `src/lib/avnu.ts` |
 | Pool | Official STRK20 pool on Mainnet and Sepolia. Addresses live in `src/utils/constants.ts` |
 
 ## What the helper does

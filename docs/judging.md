@@ -22,6 +22,7 @@ How far into the stack, not how many buzzwords.
 | Shielded balances | Yes, via the user's Ready wallet. The dapp does not read or display a counterparty balance | Account shield/unshield in the PWA; Pay spends shielded notes |
 | Private transfers into app logic | Yes. Pay, claim, and cancel are `strk20InvokeTransaction` batches | `src/lib/escrow.ts` |
 | Anonymizer contract | Yes. Custom `privacy_invoke` escrow: Deposit, Claim, Cancel | `cairo/src/lib.cairo` |
+| Private swaps | Yes. Shielded STRK ↔ USDC via AVNU's deployed executor, batched as `strk20InvokeTransaction` actions | `src/lib/avnu.ts` |
 | Privacy SDK | No, on purpose. A marketplace must not hold viewing keys | Wallet API route only |
 | Stealth / shadow accounts | No. A different STRK20 surface, not needed for the cash-like promise | See [Architecture](architecture.md) |
 
