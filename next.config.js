@@ -6,6 +6,11 @@ const nextConfig = {
   // starknetkit ships untranspiled ESM (svelte connectors). Desktop Connect
   // does not import it; Ready in-app Connect does, via dynamic import.
   transpilePackages: ["starknetkit"],
+  // Next serves app/manifest.ts at /manifest.webmanifest. Browsers and some
+  // wallet extensions still request the historical /manifest.json path.
+  async rewrites() {
+    return [{ source: "/manifest.json", destination: "/manifest.webmanifest" }];
+  },
   async headers() {
     return [
       {

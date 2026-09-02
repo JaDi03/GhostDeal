@@ -21,6 +21,13 @@ function normalizeId(s: string): string {
   return s.toLowerCase().replace(/[^a-z0-9]/g, "");
 }
 
+function pickableFrom(list: WalletWithStarknetFeatures[]): WalletWithStarknetFeatures[] {
+  return list.filter((w) => {
+    const id = normalizeId(w.name);
+    return !id.includes("metamask") && !id.includes("braavos");
+  });
+}
+
 function parseVersionParts(v: string): number[] {
   return v.split(".").map((part) => Number.parseInt(part, 10) || 0);
 }
@@ -97,10 +104,7 @@ export default function SelectWallet({ variant = "ctaBig" }: { variant?: "nav" |
 
   // Show every detected wallet except MetaMask (its Snap probing spams an unlock popup)
   // and Braavos (excluded from this starter's picker).
-  const pickable = wallets.filter((w) => {
-    const id = normalizeId(w.name);
-    return !id.includes("metamask") && !id.includes("braavos");
-  });
+  const pickable = pickableFrom(wallets);
 
   // Unchanged connection flow: takes the wallet-standard wallet and populates
   // the zustand store with a WalletAccountV6 + account/chain/permissions.
@@ -193,6 +197,9 @@ export default function SelectWallet({ variant = "ctaBig" }: { variant?: "nav" |
       }
       return;
     }
+    storeRef.current?._refreshInjectedWallets();
+    const fresh = (storeRef.current?.getWallets() ?? []) as WalletWithStarknetFeatures[];
+    setWallets(fresh.slice());
     setPickerOpen(true);
   };
 
@@ -216,6 +223,7 @@ export default function SelectWallet({ variant = "ctaBig" }: { variant?: "nav" |
           ? "Connection rejected."
           : friendlyPrivateError(err, "Wallet connection failed."),
       );
+      setPickerOpen(true);
     } finally {
       setConnecting(false);
     }
@@ -225,7 +233,7 @@ export default function SelectWallet({ variant = "ctaBig" }: { variant?: "nav" |
     <div className={`${styles.modalOverlay} gdPickerOverlay`} onClick={() => !connecting && setPickerOpen(false)}>
       <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
         <div className={styles.modalHead}>
-          <span className={styles.modalTitle}>Connect a wallet</span>
+          <span className={styles.modalTitle}>Connect wallet</span>
           <button
             className={styles.modalClose}
             onClick={() => setPickerOpen(false)}
@@ -254,9 +262,7 @@ export default function SelectWallet({ variant = "ctaBig" }: { variant?: "nav" |
           </div>
         ) : (
           <div className={styles.walletHint}>
-            No Starknet wallet detected. Install{" "}
-            <a href="https://www.ready.co/" target="_blank" rel="noreferrer">Ready</a> or{" "}
-            <a href="https://www.xverse.app/" target="_blank" rel="noreferrer">Xverse</a>.
+            No wallet detected. Enable Xverse or Ready in the browser, then reload.
           </div>
         )}
 
@@ -350,7 +356,7 @@ export default function SelectWallet({ variant = "ctaBig" }: { variant?: "nav" |
   return (
     <>
       <button className={styles.btnCta} onClick={openPicker} disabled={connecting}>
-        {connecting ? "Connecting…" : "Connect a Wallet"}
+        {connecting ? "Connecting…" : "Connect wallet"}
       </button>
       {picker}
     </>
