@@ -87,6 +87,9 @@ export default function SelectWallet({ variant = "ctaBig" }: { variant?: "nav" |
   // Detected Starknet wallets, in render state so the picker updates as wallets register.
   const [wallets, setWallets] = useState<WalletWithStarknetFeatures[]>([]);
   const storeRef = useRef<Store | null>(null);
+  // Disconnect swaps the Disconnect control for Connect in the same spot; ignore the
+  // residual click so we do not reopen the picker with a stale error.
+  const ignoreConnectUntil = useRef(0);
 
   // Create the discovery store once on mount so wallets have time to register
   // before the user opens the picker. eip1193Adapters:[] keeps MetaMask out entirely
@@ -125,13 +128,23 @@ export default function SelectWallet({ variant = "ctaBig" }: { variant?: "nav" |
     }
     const isConnectedWallet: boolean = await walletV6.getPermissions(selectedWallet).then((res: any) => (res as WALLET_API.Permission[]).includes(WALLET_API.Permission.ACCOUNTS));
     setConnected(isConnectedWallet); // zustand
-    if (isConnectedWallet) {
+    if (!isConnectedWallet) return;
+    // Chain + specs run after the session is live. Do not throw: a wallet that
+    // rejects wallet_supportedSpecs (Not implemented) used to leave pickerOpen
+    // true with an error, then reveal that modal on Disconnect.
+    try {
       const chainId = (await walletV6.requestChainId(selectedWallet)) as string;
       setChain(chainId);
       setCurrentFrontendProviderIndex(chainId === SNconstants.StarknetChainId.SN_MAIN ? 0 : 2);
       console.log("change Provider index to :", myFrontendProviderIndex);
+    } catch (err: unknown) {
+      console.warn("[wallet] requestChainId failed after connect:", err);
     }
-    setWalletApi(await walletV6.supportedSpecs(selectedWallet));
+    try {
+      setWalletApi(await walletV6.supportedSpecs(selectedWallet));
+    } catch (err: unknown) {
+      console.warn("[wallet] supportedSpecs failed after connect:", err);
+    }
   }
 
   async function requireStrk20WalletApi(selectedWallet: WalletWithStarknetFeatures) {
@@ -178,6 +191,7 @@ export default function SelectWallet({ variant = "ctaBig" }: { variant?: "nav" |
   // Open the wallet picker so the user can choose (Ready, Xverse, ...).
   // Inside Ready's explorer, skip the empty discovery picker and use StarknetKit.
   const openPicker = async () => {
+    if (Date.now() < ignoreConnectUntil.current) return;
     setError("");
     const { isInArgentMobileAppBrowser } = await import("starknetkit/argentMobile");
     if (isInArgentMobileAppBrowser()) {
@@ -218,6 +232,12 @@ export default function SelectWallet({ variant = "ctaBig" }: { variant?: "nav" |
       setPickerOpen(false);
     } catch (err: unknown) {
       console.log("Wallet connection failed.\n", err);
+      // Session may already be live if a later step threw; do not keep the picker.
+      if (useStoreWallet.getState().isConnected) {
+        setError("");
+        setPickerOpen(false);
+        return;
+      }
       setError(
         isUserRefusedError(err)
           ? "Connection rejected."
@@ -227,6 +247,14 @@ export default function SelectWallet({ variant = "ctaBig" }: { variant?: "nav" |
     } finally {
       setConnecting(false);
     }
+  }
+
+  function disconnectSession() {
+    ignoreConnectUntil.current = Date.now() + 400;
+    setAddrOpen(false);
+    setError("");
+    setPickerOpen(false);
+    setConnected(false);
   }
 
   const picker = pickerOpen ? (
@@ -280,10 +308,7 @@ export default function SelectWallet({ variant = "ctaBig" }: { variant?: "nav" |
             <button
               type="button"
               className={styles.addrDisconnect}
-              onClick={() => {
-                setAddrOpen(false);
-                setConnected(false);
-              }}
+              onClick={disconnectSession}
             >
               Disconnect
             </button>
