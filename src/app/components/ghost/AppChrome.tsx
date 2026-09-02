@@ -32,11 +32,11 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
   return (
     <div className="gd">
       <div className="gdStage">
-        <p className="gdStageKicker">Live app</p>
-        <div className="gdDevice">
-          <span className="gdDeviceBtn gdDeviceBtnVol" aria-hidden="true" />
-          <span className="gdDeviceBtn gdDeviceBtnPwr" aria-hidden="true" />
-          <div className="gdShell">
+        <div className="gdDeviceSlot">
+          <div className="gdDevice">
+            <span className="gdDeviceBtn gdDeviceBtnVol" aria-hidden="true" />
+            <span className="gdDeviceBtn gdDeviceBtnPwr" aria-hidden="true" />
+            <div className="gdShell">
             <header className="gdHeader">
               <div className="gdHeaderLead">
                 <Link href="/" className="gdBrand">
@@ -74,9 +74,13 @@ export default function AppChrome({ children }: { children: React.ReactNode }) {
             </nav>
           </div>
         </div>
-        <p className="gdStageHint">
-          Click inside like your phone. On mobile, open this site in the Ready in-app browser.
-        </p>
+        </div>
+        <div className="gdStageMeta">
+          <p className="gdStageKicker">Live app</p>
+          <p className="gdStageHint">
+            Click inside like your phone. On mobile, open this site in Xverse or Ready.
+          </p>
+        </div>
       </div>
     </div>
   );
