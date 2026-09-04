@@ -15,7 +15,7 @@ import {
   poolFeeAmount,
   priceToWei,
   publicTokenBalance,
-  readShieldedBalance,
+  readShieldedBalances,
   requireWalletApi0103,
   forceReleasePrivateOp,
   shieldTokens,
@@ -35,6 +35,18 @@ function wholeStrkForFee(feeWei: bigint): bigint {
   return feeWei % 10n ** STRK_DECIMALS > 0n ? whole + 1n : whole;
 }
 
+function balanceTokensForIndex(providerIndex: number): { token: ListingToken; address: string }[] {
+  const pairs: { token: ListingToken; address: string }[] = [
+    { token: "STRK", address: tokenAddressForListing("STRK", providerIndex) },
+  ];
+  try {
+    pairs.push({ token: "USDC", address: tokenAddressForListing("USDC", providerIndex) });
+  } catch {
+    /* USDC is not available on this network */
+  }
+  return pairs;
+}
+
 export default function AccountPage() {
   const isConnected = useStoreWallet((s) => s.isConnected);
   const account = useStoreWallet((s) => s.myWalletAccount);
@@ -42,8 +54,8 @@ export default function AccountPage() {
   const address = useStoreWallet((s) => s.address);
   const providerIndex = useFrontendProvider((s) => s.currentFrontendProviderIndex);
 
-  // null = not read yet; balanceFailed = the wallet's balance service failed.
-  const [balance, setBalance] = useState<bigint | null>(null);
+  // null = not read yet; a present token with no notes is 0n, not missing.
+  const [balances, setBalances] = useState<Partial<Record<ListingToken, bigint>> | null>(null);
   const [balanceFailed, setBalanceFailed] = useState(false);
   const [reading, setReading] = useState(false);
   const [asset, setAsset] = useState<ListingToken>("STRK");
@@ -71,6 +83,7 @@ export default function AccountPage() {
   const swapNetworkReady =
     providerIndex in Strk20Networks && !isZeroAddress(poolAddressForIndex(providerIndex));
   const swapBuyToken: ListingToken = swapAsset === "STRK" ? "USDC" : "STRK";
+  const shownBalance = balances?.[asset];
   // STRK only: seed the input with ~2 pool fees so fees for later private ops are covered.
   const suggestedAmount = useMemo(() => {
     if (asset !== "STRK" || fee === null || fee <= 0n) return null;
@@ -82,6 +95,8 @@ export default function AccountPage() {
   useEffect(() => {
     let cancelled = false;
     setAmountTouched(false);
+    setBalances(null);
+    setBalanceFailed(false);
     setFee(null);
     setConvertQuote(null);
     poolFeeAmount(myFrontendProviders[providerIndex], poolAddressForIndex(providerIndex)).then((value) => {
@@ -93,8 +108,6 @@ export default function AccountPage() {
   }, [providerIndex]);
 
   useEffect(() => {
-    setBalance(null);
-    setBalanceFailed(false);
     setAmountTouched(false);
     if (asset === "USDC") setAmount("");
   }, [asset]);
@@ -129,12 +142,20 @@ export default function AccountPage() {
     setError("");
     setReading(true);
     try {
-      const value = await readShieldedBalance(account, tokenAddressForListing(asset, providerIndex));
-      setBalance(value);
+      const pairs = balanceTokensForIndex(providerIndex);
+      const values = await readShieldedBalances(
+        account,
+        pairs.map((pair) => pair.address),
+      );
+      const next: Partial<Record<ListingToken, bigint>> = {};
+      pairs.forEach((pair, i) => {
+        next[pair.token] = values[i] ?? 0n;
+      });
+      setBalances(next);
       setBalanceFailed(false);
     } catch (err: unknown) {
       console.warn("[strk20] shieldedBalance failed:", err);
-      setBalance(null);
+      setBalances(null);
       setBalanceFailed(true);
       setError(friendlyPrivateError(err, "Could not read shielded balance."));
     } finally {
@@ -315,9 +336,9 @@ export default function AccountPage() {
       setError(`Enter a whole number of ${swapAsset} to convert.`);
       return;
     }
-    // The displayed balance only matches when converting the chip-selected asset.
-    if (swapAsset === asset && balance !== null && balance < amountWei) {
-      setError(`Not enough shielded ${swapAsset}: you have ${formatWei(balance, swapAsset)}.`);
+    const swapBal = balances?.[swapAsset];
+    if (swapBal !== undefined && swapBal < amountWei) {
+      setError(`Not enough shielded ${swapAsset}: you have ${formatWei(swapBal, swapAsset)}.`);
       return;
     }
     setConverting(true);
@@ -445,11 +466,11 @@ export default function AccountPage() {
       </div>
 
       <div className="gdPrice" style={{ fontSize: 28, margin: "10px 0 6px" }}>
-        {balance !== null ? (
+        {shownBalance !== undefined ? (
           <>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={TOKEN_ICON[asset]} alt="" />
-            {formatWei(balance, asset)} {asset}
+            {formatWei(shownBalance, asset)} {asset}
           </>
         ) : balanceFailed ? (
           "Unavailable"
@@ -464,7 +485,7 @@ export default function AccountPage() {
         onClick={onReadBalance}
         disabled={reading}
       >
-        {reading ? "Reading…" : balance === null ? "Show balance" : "Refresh"}
+        {reading ? "Reading…" : balances === null ? "Show balance" : "Refresh"}
       </button>
       {error ? (
         <p className="gdAlert" role="alert">

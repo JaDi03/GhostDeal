@@ -139,21 +139,29 @@ export function forceReleasePrivateOp(): void {
   privateOpInFlight = false;
 }
 
-// Wallet-mediated read of the user's shielded balance. No viewing key ever
-// reaches the dapp. Throws when the wallet rejects the request (NOT_REGISTERED,
-// timeout, unsupported method). Callers that must not block on a failed read
-// should use shieldedBalance instead.
-export async function readShieldedBalance(account: WalletAccountV6, token: string): Promise<bigint> {
-  // A wedged relay can leave this read hanging forever, freezing whatever
-  // button triggered it: degrade after a minute instead.
+// Wallet-mediated read of shielded balances. No viewing key ever reaches the
+// dapp. Throws when the wallet rejects the request (NOT_REGISTERED, timeout,
+// unsupported method). A token with no notes is 0, not missing. Callers that
+// must not block on a failed read should use shieldedBalance instead.
+export async function readShieldedBalances(account: WalletAccountV6, tokens: string[]): Promise<bigint[]> {
+  // Wallet API felts must be unpadded hex. A wedged relay can leave this read
+  // hanging forever; degrade after a minute instead.
+  const requested = tokens.map((token) => felt(token));
   const entries = await Promise.race([
-    account.strk20Balances([token]),
+    account.strk20Balances(requested),
     new Promise<never>((_, reject) =>
       setTimeout(() => reject(new Error("shielded balance read timed out")), 60_000),
     ),
   ]);
-  const entry = entries.find((e) => sameFelt(e.token, token));
-  return entry ? BigInt(entry.balance) : 0n;
+  return requested.map((token) => {
+    const entry = entries.find((e) => sameFelt(e.token, token));
+    return entry ? BigInt(entry.balance) : 0n;
+  });
+}
+
+export async function readShieldedBalance(account: WalletAccountV6, token: string): Promise<bigint> {
+  const [value] = await readShieldedBalances(account, [token]);
+  return value ?? 0n;
 }
 
 // Same read, but returns null on failure. Callers must treat null as "unknown",
