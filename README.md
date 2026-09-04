@@ -11,7 +11,7 @@
 
 ![GhostDeal: a private P2P marketplace on Starknet](docs/assets/hero.png)
 
-**Try it live:** [ghost-deal.vercel.app](https://ghost-deal.vercel.app) &middot; **Docs:** [how GhostDeal works](docs/index.md). On a phone, open it inside the Ready wallet.
+**Try it live:** [ghost-deal.vercel.app](https://ghost-deal.vercel.app) &middot; **Docs:** [how GhostDeal works](docs/index.md). On a phone, open it inside a privacy-enabled wallet.
 
 ## What the ecosystem was missing
 
@@ -19,7 +19,7 @@ Privacy on Starknet already exists, but it was built for traders: private swaps,
 
 Cash works like that. You agree on a price, hand over the bills, take the item home. Nobody asks for your bank statement. Public crypto does the opposite: **one payment puts your whole wallet on display for a stranger.** Your address, your history, your remaining balance, one click away on any explorer. Fine for a trader. Not fine when you are buying a used PC from a neighbor.
 
-GhostDeal is that missing layer: a mobile PWA for ordinary people, for the purchases you already make today. No app store, no sign-up: it opens in the phone's browser and pays from the Ready wallet you already have. The other side sees that the price was paid. Never what else you hold.
+GhostDeal is that missing layer: a mobile PWA for ordinary people, for the purchases you already make today. No app store, no sign-up: it opens in the phone's browser and pays from a privacy-enabled wallet you already have. The other side sees that the price was paid. Never what else you hold.
 
 ## How it works
 
@@ -43,7 +43,7 @@ If the deal falls through, the buyer cancels and the refund comes back as a priv
 
 ## Why it is actually private
 
-The app never touches your keys. GhostDeal runs on the Starknet Wallet API: your Ready wallet builds and proves the private transactions on your device. Escrow is a small Cairo contract with `privacy_invoke` that only the STRK20 pool can call: no admin key, no upgrade, no custody. Pay and cash out happen inside the pool's shielded zone; the app just orchestrates.
+The app never touches your keys. GhostDeal runs on the Starknet Wallet API: your wallet builds and proves the private transactions on your device. Escrow is a small Cairo contract with `privacy_invoke` that only the STRK20 pool can call: no admin key, no upgrade, no custody. Pay and cash out happen inside the pool's shielded zone; the app just orchestrates.
 
 Full details in the [Architecture](docs/architecture.md) page.
 
@@ -65,7 +65,7 @@ cp .env.example .env.local
 yarn dev
 ```
 
-Open http://localhost:3000. Desktop: Chrome + the Ready extension. Phone: open the PWA inside the Ready app.
+Open http://localhost:3000. Desktop: Chrome + a privacy-enabled wallet extension. Phone: open the PWA inside the wallet app.
 
 ## Credits and license
 
