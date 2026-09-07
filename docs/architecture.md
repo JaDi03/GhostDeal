@@ -11,7 +11,7 @@ flowchart TB
   subgraph ui ["GhostDeal PWA"]
     A["Listings, QR, Pay, Claim"]
   end
-  subgraph wallet ["Ready wallet"]
+  subgraph wallet ["Privacy wallet"]
     B["Wallet API 0.10.3+"]
     C["Viewing keys stay here"]
   end
@@ -27,7 +27,7 @@ flowchart TB
 | Layer | What it is in this repo |
 | --- | --- |
 | UI | Next.js 16 PWA (`src/app/`) |
-| Wallet | starknet.js 10, get-starknet discovery 6, Ready. Connect on desktop via the injected picker. Connect on phone inside Ready's in-app browser |
+| Wallet | starknet.js 10, get-starknet discovery 6. Connect on desktop via the injected picker. Connect on phone inside the wallet's in-app browser. Wallet API `>= 0.10.3` |
 | Actions | `strk20InvokeTransaction` in `src/lib/escrow.ts` |
 | Helper | Cairo `privacy_invoke` escrow in `cairo/` |
 | Private swaps | AVNU's deployed executor for shielded STRK ↔ USDC, quoted from AVNU's public API and batched in `src/lib/avnu.ts` |
@@ -56,6 +56,14 @@ Listings can be priced in USDC or STRK. Pool fees are always STRK.
 
 ### Token-agnostic escrow
 The Cairo helper (`cairo/src/lib.cairo`) stores `token: ContractAddress` and `amount: u256`. Pay in this dapp supports STRK and native Circle USDC only (`src/lib/escrow.ts`).
+
+## Account
+
+`/account` is where the connected user preps their own shielded funds. It never shows a counterparty balance.
+
+- **Show balance** asks the wallet once for STRK and USDC (`strk20Balances`). A token with no notes shows 0. Switching chips reuses that read (`src/app/account/page.tsx`, `readShieldedBalances` in `src/lib/escrow.ts`).
+- **Shield / Unshield** deposit or withdraw the selected token through the wallet.
+- **Convert** quotes and submits a private STRK ↔ USDC swap through AVNU. The pool fee is charged in shielded STRK.
 
 ## Shared listings
 

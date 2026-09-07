@@ -2,7 +2,7 @@
 
 **Pay like cash.** You pay the agreed price. The other person never sees your wallet or how much crypto you still hold.
 
-GhostDeal is a mobile PWA for in-person sales on Starknet. A seller lists an item in USDC and shares a QR. A buyer pays that price into private escrow. After the item changes hands, the seller cashes out into a private note.
+GhostDeal is a mobile PWA for in-person sales on Starknet. A seller lists an item in USDC or STRK and shares a QR. A buyer pays that price into private escrow. After the item changes hands, the seller cashes out into a private note.
 
 ![GhostDeal marketplace listings](assets/home-marketplace.png)
 

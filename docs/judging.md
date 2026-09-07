@@ -19,7 +19,7 @@ How far into the stack, not how many buzzwords.
 
 | Surface | In GhostDeal? | Where |
 | --- | --- | --- |
-| Shielded balances | Yes, via the user's Ready wallet. The dapp does not read or display a counterparty balance | Account shield/unshield in the PWA; Pay spends shielded notes |
+| Shielded balances | Yes. Account Show balance asks the wallet for STRK and USDC in one consent. A token with no notes shows 0. Counterparty balances are never requested | `src/app/account/page.tsx` |
 | Private transfers into app logic | Yes. Pay, claim, and cancel are `strk20InvokeTransaction` batches | `src/lib/escrow.ts` |
 | Anonymizer contract | Yes. Custom `privacy_invoke` escrow: Deposit, Claim, Cancel | `cairo/src/lib.cairo` |
 | Private swaps | Yes. Shielded STRK ↔ USDC via AVNU's deployed executor, batched as `strk20InvokeTransaction` actions | `src/lib/avnu.ts` |
@@ -37,9 +37,9 @@ The bar from the rules: it runs, on mainnet, for a real user.
 | No login wall | The PWA is public. Guests can open a listing |
 | STRK20 pool on mainnet | Yes. Address in `src/utils/constants.ts` |
 | GhostDeal helper on mainnet | Yes. Mainnet `0x1ad47d7b59f736383221af3847aeb737d358e0c2cce947482ca48dad6c4ca72`, Sepolia `0x2fe8c2bc2194ccdf899c0566057217a34e139c0c5e6f7931f2b24cb436a22cf` |
-| Three mainnet transactions | Not yet in `strk20.json`. Use Pay, Claim, or Cancel transactions: each touches the pool and runs through our helper via `privacy_invoke` in the same tx. A shield-only deposit touches the pool but does not run through our contract |
-| Demo video | Not yet. `demo_video` is a required `strk20.json` field (3 minutes) |
-| Live demo URL | Yes. [https://ghost-deal.vercel.app](https://ghost-deal.vercel.app). Fill `strk20.json` `demo_url` with it |
+| Three mainnet transactions | Yes. In `strk20.json`. Each touches the pool and the helper in the same tx (not shield-only): [Pay +2 STRK](https://starkscan.co/tx/0x05a72e851872709834eacd2a66c8f0c571b98db1d3fd58b624c069413fb7bacf), [Claim or Cancel −2 STRK](https://starkscan.co/tx/0x04da2e5f3e247ecf722e7af5c0de923eb639a48008fa15628fe300235af62fc1), [Pay +10 STRK](https://starkscan.co/tx/0x011dbb7d245a7bda4d982b6102f2c6c0c2b897979388879d8d490b7c78153868) |
+| Demo video | Yes. In `strk20.json`: [YouTube demo](https://youtu.be/gR9kkWwdkCc) (3 minutes) |
+| Live demo URL | Yes. [https://ghost-deal.vercel.app](https://ghost-deal.vercel.app) |
 
 ## 25% Innovation
 

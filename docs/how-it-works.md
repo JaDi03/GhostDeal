@@ -47,7 +47,7 @@ You found a listing nearby. You agree on a price in USDC. You do not want the se
 </div>
 
 1. **List.** The seller creates the listing on their phone. The app shows a claim secret once, like a backup phrase. The listing carries the price (USDC or STRK) and a hash of that secret. No transaction yet.
-2. **Pay.** The buyer opens the listing (QR or link), connects Ready, and pays the price from shielded funds. Funds lock in the GhostDeal escrow. The seller sees that it is paid, not who paid from which notes.
+2. **Pay.** On Account the buyer shields the listing token and enough STRK for pool fees (Show balance asks the wallet for both in one consent; an empty token shows 0). Then they open the listing (QR or link) and pay from shielded funds. Funds lock in the GhostDeal escrow. The seller sees that it is paid, not who paid from which notes.
 3. **Meet.** The item changes hands in person.
 4. **Cash out.** The seller claims with the secret kept on their phone (or pasted from backup). The price lands as a private note. If the deal falls through, the buyer cancels with the refund secret saved at pay time and the listing can reopen.
 
@@ -60,7 +60,7 @@ sequenceDiagram
   participant Seller
   participant Buyer
   participant App as GhostDeal
-  participant Wallet as Ready wallet
+  participant Wallet as Wallet
   participant Pool as STRK20 pool
   participant Escrow as GhostDeal helper
 

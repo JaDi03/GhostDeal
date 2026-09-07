@@ -11,7 +11,7 @@
 
 ![GhostDeal: a private P2P marketplace on Starknet](docs/assets/hero.png)
 
-**Try it live:** [ghost-deal.vercel.app](https://ghost-deal.vercel.app) &middot; **Docs:** [how GhostDeal works](docs/index.md). On a phone, open it inside the Ready wallet.
+**Try it live:** [ghost-deal.vercel.app](https://ghost-deal.vercel.app) &middot; **Demo video:** [YouTube](https://youtu.be/gR9kkWwdkCc) &middot; **Docs:** [how GhostDeal works](docs/index.md). On a phone, open it inside a privacy-enabled wallet.
 
 ## What the ecosystem was missing
 
@@ -19,16 +19,15 @@ Privacy on Starknet already exists, but it was built for traders: private swaps,
 
 Cash works like that. You agree on a price, hand over the bills, take the item home. Nobody asks for your bank statement. Public crypto does the opposite: **one payment puts your whole wallet on display for a stranger.** Your address, your history, your remaining balance, one click away on any explorer. Fine for a trader. Not fine when you are buying a used PC from a neighbor.
 
-GhostDeal is that missing layer: a mobile PWA for ordinary people, for the purchases you already make today. No app store, no sign-up: it opens in the phone's browser and pays from the Ready wallet you already have. The other side sees that the price was paid. Never what else you hold.
+GhostDeal is that missing layer: a mobile PWA for ordinary people, for the purchases you already make today. No app store, no sign-up: it opens in the phone's browser and pays from a privacy-enabled wallet you already have. The other side sees that the price was paid. Never what else you hold.
 
 ## How it works
 
-| <img src="docs/assets/icons/camera.svg" width="30"> | <img src="docs/assets/icons/handshake.svg" width="30"> | <img src="docs/assets/icons/banknote.svg" width="30"> |
-| --- | --- | --- |
-| **List it** | **Meet up** | **Get paid** |
-| Set a price in USDC or STRK, share the QR | Hand over the item like always | The price lands as a private note. No wallet shown |
+![GhostDeal escrow flow: buyer locks ZK note, in-person delivery, seller claims funds without direct wallet interaction](docs/assets/how-it-works.png)
 
-If the deal falls through, the buyer cancels and the refund comes back as a private note too.
+1. **Lock payment:** The buyer locks the agreed price (USDC or STRK) into private escrow via the Cairo helper inside the STRK20 privacy pool.
+2. **In-person delivery:** Both parties meet and exchange the item. Neither party sees the other's wallet address or remaining balance.
+3. **Claim funds:** The seller claims the payment into a fresh private note using the secret generated at listing time. If the deal falls through, the buyer can cancel and receive a private refund.
 
 ## The promise, no fine print
 
@@ -43,7 +42,7 @@ If the deal falls through, the buyer cancels and the refund comes back as a priv
 
 ## Why it is actually private
 
-The app never touches your keys. GhostDeal runs on the Starknet Wallet API: your Ready wallet builds and proves the private transactions on your device. Escrow is a small Cairo contract with `privacy_invoke` that only the STRK20 pool can call: no admin key, no upgrade, no custody. Pay and cash out happen inside the pool's shielded zone; the app just orchestrates.
+The app never touches your keys. GhostDeal runs on the Starknet Wallet API: your wallet builds and proves the private transactions on your device. Escrow is a small Cairo contract with `privacy_invoke` that only the STRK20 pool can call: no admin key, no upgrade, no custody. Pay and cash out happen inside the pool's shielded zone; the app just orchestrates.
 
 Full details in the [Architecture](docs/architecture.md) page.
 
@@ -65,7 +64,7 @@ cp .env.example .env.local
 yarn dev
 ```
 
-Open http://localhost:3000. Desktop: Chrome + the Ready extension. Phone: open the PWA inside the Ready app.
+Open http://localhost:3000. Desktop: Chrome + a privacy-enabled wallet extension. Phone: open the PWA inside the wallet app.
 
 ## Credits and license
 
