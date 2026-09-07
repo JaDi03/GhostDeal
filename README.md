@@ -11,7 +11,7 @@
 
 ![GhostDeal: a private P2P marketplace on Starknet](docs/assets/hero.png)
 
-**Try it live:** [ghost-deal.vercel.app](https://ghost-deal.vercel.app) &middot; **Docs:** [how GhostDeal works](docs/index.md). On a phone, open it inside a privacy-enabled wallet.
+**Try it live:** [ghost-deal.vercel.app](https://ghost-deal.vercel.app) &middot; **Demo video:** [YouTube](https://youtu.be/gR9kkWwdkCc) &middot; **Docs:** [how GhostDeal works](docs/index.md). On a phone, open it inside a privacy-enabled wallet.
 
 ## What the ecosystem was missing
 
