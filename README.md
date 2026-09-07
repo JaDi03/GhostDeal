@@ -23,12 +23,11 @@ GhostDeal is that missing layer: a mobile PWA for ordinary people, for the purch
 
 ## How it works
 
-| <img src="docs/assets/icons/camera.svg" width="30"> | <img src="docs/assets/icons/handshake.svg" width="30"> | <img src="docs/assets/icons/banknote.svg" width="30"> |
-| --- | --- | --- |
-| **List it** | **Meet up** | **Get paid** |
-| Set a price in USDC or STRK, share the QR | Hand over the item like always | The price lands as a private note. No wallet shown |
+![GhostDeal escrow flow: buyer locks ZK note, in-person delivery, seller claims funds without direct wallet interaction](docs/assets/how-it-works.png)
 
-If the deal falls through, the buyer cancels and the refund comes back as a private note too.
+1. **Lock payment:** The buyer locks the agreed price (USDC or STRK) into private escrow via the Cairo helper inside the STRK20 privacy pool.
+2. **In-person delivery:** Both parties meet and exchange the item. Neither party sees the other's wallet address or remaining balance.
+3. **Claim funds:** The seller claims the payment into a fresh private note using the secret generated at listing time. If the deal falls through, the buyer can cancel and receive a private refund.
 
 ## The promise, no fine print
 
